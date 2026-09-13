@@ -46,3 +46,32 @@ int arquivo_LeInt(FILE *pontArquivo, int *dado ){
     }
     return 1;
 }
+
+//leitura do arquivo csv e separação entre 4 campos
+int csv_LeLinha(FILE *arqCSV, int *idPoPs, int *idPoPsConectado, int *velocidade, char *unidadeMedida){
+    char linha[500];
+    
+    if(fgets(linha, sizeof(linha), arqCSV) == NULL){
+        return 0; //final do arquivo
+    }
+
+    char campoVeloc[10] = "";
+    char campoUnidade[10] = "";
+
+    sscanf(linha, "%d, %d, %[^,],%[^\n]", idPoPs, idPoPsConectado, campoVeloc, campoUnidade);
+
+    //caso velocidade seja nula
+    if(campoVeloc[0] == '\0' || campoVeloc[0] == ' '){
+        *velocidade = -1;
+    }else{
+        *velocidade = atoi(campoVeloc);
+    }
+    //caso unidadeMedida seja nula
+    if(campoUnidade[0] == '\0' || campoUnidade[0] == ' '){
+        *unidadeMedida = '$';
+    } else{
+        *unidadeMedida = campoUnidade[0];
+    }
+
+    return 1;
+}

@@ -28,7 +28,7 @@ int arquivo_LeChar(FILE *pontArquivo, char *dado);
 int arquivo_LeInt(FILE *pontArquivo, int *dado);
 
 
-
+int csv_LeLinha(FILE *arqCSV, int *idPoPs, int *idPoPsConectado, int *velocidade, char *unidadeMedida);
 
 
 
