@@ -37,11 +37,11 @@ void Imprimir_registro( const Registro *reg)
   
     printf("idPoPs: ");
     if (reg->IDPoPs == VALOR_NULO_INT) printf("NULO\n");
-    else                               printf("%d\n", reg->idPoPs);
+    else                               printf("%d\n", reg->IDPoPs);
  
     printf("idPoPsConectado: ");
     if (reg->IDPoPs_Conectado == VALOR_NULO_INT) printf("NULO\n");
-    else                                        printf("%d\n", reg->idPoPsConectado);
+    else                                        printf("%d\n", reg->IDPoPs_Conectado);
  
     printf("velocidade: ");
     if (reg->velocidade == VALOR_NULO_INT) printf("NULO\n");
@@ -49,6 +49,6 @@ void Imprimir_registro( const Registro *reg)
  
     printf("unidadeMedida: ");
     if (reg->unidade_medida == VALOR_NULO_CHAR) printf("NULO\n");
-    else                                       printf("%c\n", reg->unidadeMedida);
+    else                                       printf("%c\n", reg->unidade_medida);
 }
  
