@@ -45,7 +45,7 @@ typedef struct
 
 } Registro ; 
 
-void inicializar_registro(Registro *reg)
+void inicializar_registro(Registro *reg);
  //coloca o registro em um estado vazio conhecido antes de inserir dados
 
 int Ler_registro(Registro *reg); 
