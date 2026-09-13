@@ -18,7 +18,19 @@
 
 #define VALOR_NULO_INT -1
 
-#define CALOR_NULO_CHAR '$'
+#define VALOR_NULO_CHAR '$'
+
+
+//definindo a struct cabecalho
+//POssui 17 bytes, status(1), topo(4), prox(4), nroRem(4), nroPares(4)
+struct Cabecalho {
+    char status; 
+    int topoPiplha;
+    int proxRNN;
+    int nroRegRem;
+    int nroPares;
+};
+
 
 //struct do registro
 
