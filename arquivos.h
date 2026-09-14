@@ -2,6 +2,21 @@
 #define ARQUIVOS_H
 
 #include <stdio.h>
+#include <registro.h>
+
+// definicao dos cabecalhos
+#define TAMANHO_STATUS  1
+#define TAMANHO_TOPO_PILHA 4
+#define TAMANHO_PROXIMO_RRN 4
+#define TAMANHO_NMRO_REGREM 4
+#define TAMANHO_NMRO_PARES 4
+
+#define TAMANHO_CABECALHO (TAMANHO_STATUS + TAMANHO_TOPO_PILHA + \
+                            TAMANHO_PROXIMO_RRN + TAMANHO_NMRO_REGREM + TAMANHO_NMRO_PARES)
+
+#define STATUS_CONSISTENTE '1'
+#define STATUS_INCONSISTENTE '0'
+
 
 // Abre um arquivo no modo especificado e armazena o ponteiro em *pontArquivo.
 void arquivo_Abertura(FILE **pontArquivo, char *nome, char *modo);
