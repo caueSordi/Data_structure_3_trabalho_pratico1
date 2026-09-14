@@ -5,6 +5,6 @@
 #include "registro.h"
 #include "busca.h"
 
-void funcao_CREATE(char *nomeCSV, char *nomeBin);
+int funcao_CREATE(char *nomeCSV, char *nomeBin);
 
 #endif

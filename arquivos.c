@@ -1,4 +1,4 @@
-#include <arquivos.h>
+#include "arquivos.h"
 #include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -32,7 +32,7 @@ void arquivo_posicSeek(FILE *arquivo, int rnn)
 
 //Escreve um conjunto de dados 
 int arquivo_EscreveChar(FILE *pontArquivo, char dado){
-   if( fwrite(&dado, sizoef(dado), 1,  pontArquivo) != 1){
+   if( fwrite(&dado, sizeof(dado), 1,  pontArquivo) != 1){
         printf("Falha no processamento do arquivo.\n");
         return 0;
     }
@@ -40,7 +40,7 @@ int arquivo_EscreveChar(FILE *pontArquivo, char dado){
 }
 
 int arquivo_EscreveInt(FILE *pontArquivo, int dado){
-   if( fwrite(&dado, sizoef(dado), 1,  pontArquivo) != 1){
+   if( fwrite(&dado, sizeof(dado), 1,  pontArquivo) != 1){
         printf("Falha no processamento do arquivo.\n");
         return 0;
     }

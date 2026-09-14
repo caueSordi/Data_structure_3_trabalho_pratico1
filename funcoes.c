@@ -1,7 +1,7 @@
 #include "funcoes.h"
 
 //Função 1: Leitura do CSV, Criação e Escrita no .bin
-void funcao_CREATE(char *nomeCSV, char *nomeBin){
+int funcao_CREATE(char *nomeCSV, char *nomeBin){
     FILE *arqCSV, *arqBIN;
 
     int idPoPs, idPoPsConectado, velocidade;
@@ -64,6 +64,6 @@ void funcao_CREATE(char *nomeCSV, char *nomeBin){
     arquivo_EscreveInt(arqBIN, nroRegRem);
     arquivo_EscreveInt(arqBIN, nroPares);
 
-    arquivo_Close(arqBIN);
+    arquivo_Close(&arqBIN);
     BinarioNaTela(nomeBin);
 }
