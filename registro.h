@@ -23,13 +23,13 @@
 
 //definindo a struct cabecalho
 //POssui 17 bytes, status(1), topo(4), prox(4), nroRem(4), nroPares(4)
-struct Cabecalho {
+typedef struct  {
     char status; 
     int topoPiplha;
     int proxRNN;
     int nroRegRem;
     int nroPares;
-};
+}Cabecalho;
 
 
 //struct do registro
