@@ -2,7 +2,7 @@
 #define ARQUIVOS_H
 
 #include <stdio.h>
-#include <registro.h>
+#include "registro.h"
 
 // definicao dos cabecalhos
 #define TAMANHO_STATUS  1

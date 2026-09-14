@@ -1,10 +1,7 @@
-#include <busca.h>
-#include <registro.h>
-#include <arquivos.h>
-
+#include "funcoes.h"
 
 //Função 1: Leitura do CSV, Criação e Escrita no .bin
-int funcao_CREATE(char *nomeCSV, char *nomeBin){
+void funcao_CREATE(char *nomeCSV, char *nomeBin){
     FILE *arqCSV, *arqBIN;
 
     int idPoPs, idPoPsConectado, velocidade;
