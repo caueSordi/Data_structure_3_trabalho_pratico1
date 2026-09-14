@@ -94,10 +94,10 @@ int csv_LeLinha(FILE *arqCSV, int *idPoPs, int *idPoPsConectado, int *velocidade
 void Inicializa_Cabecalho(Cabecalho *cab)
 {
     cab->status = STATUS_INCONSISTENTE;
-    cab->prox_RRN = 0;
-    cab->topo_pilha = -1;
-    cab->nmro_registro_removidos = 0;
-    cab->nmro_pares = 0;
+    cab->proxRNN = 0;
+    cab->topoPiplha = -1;
+    cab->nroRegRem = 0;
+    cab->nroPares = 0;
 
 }
 
@@ -105,13 +105,14 @@ int Ler_Cabecalho(FILE *arquivo, Cabecalho *cab)
 {
     if (fread(&cab->status, sizeof(char), 1, arquivo) != 1)
         return 0;
-    if (fread(&cab->prox_RRN, sizeof(int), 1, arquivo) != 1)
+   
+    if (fread(&cab->topoPiplha, sizeof(int), 1, arquivo) != 1)
         return 0;
-    if (fread(&cab->topo_pilha, sizeof(int), 1, arquivo) != 1)
+     if (fread(&cab->proxRNN, sizeof(int), 1, arquivo) != 1)
         return 0;
-    if (fread(&cab->nmro_registro_removidos, sizeof(int), 1, arquivo) != 1)
+    if (fread(&cab->nroRegRem, sizeof(int), 1, arquivo) != 1)
         return 0;
-    if (fread(&cab->nmro_pares, sizeof(int), 1, arquivo) != 1)
+    if (fread(&cab->nroPares, sizeof(int), 1, arquivo) != 1)
         return 0;
     return 1;
 }
@@ -119,10 +120,10 @@ int Ler_Cabecalho(FILE *arquivo, Cabecalho *cab)
 void Escrever_Cabecalho(FILE *arquivo, Cabecalho *cab)
 {
     fwrite(&cab->status, sizeof(char), 1, arquivo);
-    fwrite(&cab->prox_RRN, sizeof(int), 1, arquivo);
-    fwrite(&cab->topo_pilha, sizeof(int), 1, arquivo);
-    fwrite(&cab->nmro_registro_removidos, sizeof(int), 1, arquivo);
-    fwrite(&cab->nmro_pares, sizeof(int), 1, arquivo);
+    fwrite(&cab->topoPiplha, sizeof(int), 1, arquivo);
+    fwrite(&cab->proxRNN, sizeof(int),1, arquivo);
+    fwrite(&cab->nroRegRem, sizeof(int), 1, arquivo);
+    fwrite(&cab->nroPares, sizeof(int), 1, arquivo);
 }
 
 
