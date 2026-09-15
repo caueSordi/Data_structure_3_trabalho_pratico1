@@ -22,7 +22,7 @@ int Ler_registro(FILE *arquivo, Registro *reg)
     return 1;
 }
 
-void Escrever_registro(FILE *arquivo, const Registro *reg) 
+void Escrever_registro(FILE *arquivo,  Registro *reg) 
 {
     fwrite(&reg->removido,          sizeof(char), 1, arquivo);
     fwrite(&reg->encadeamento_pilha, sizeof(int),  1, arquivo);
