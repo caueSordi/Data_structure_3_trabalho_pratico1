@@ -23,13 +23,12 @@
 
 //definindo a struct cabecalho
 //POssui 17 bytes, status(1), topo(4), prox(4), nroRem(4), nroPares(4)
-typedef struct  {
     char status; 
     int topoPiplha;
     int proxRNN;
     int nroRegRem;
     int nroPares;
-}Cabecalho;
+};
 
 
 //struct do registro
@@ -48,7 +47,7 @@ typedef struct
 void inicializar_registro(Registro *reg);
  //coloca o registro em um estado vazio conhecido antes de inserir dados
 
-int Ler_registro(FILE *arquivo, Registro *reg); 
+int Ler_registro(FILE *arquivo, Registro *reg);
 //le um registro do arquivo, por campo e retorna 1 se leu ou 0 se deu erro ou EOF
 
 void Escrever_registro(FILE *arquivo, Registro *reg);
