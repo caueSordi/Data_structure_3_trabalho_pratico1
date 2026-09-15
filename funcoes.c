@@ -1,4 +1,7 @@
 #include "funcoes.h"
+#include "arquivo.h"
+#include "registro.h"
+
 
 //Função 1: Leitura do CSV, Criação e Escrita no .bin
 int funcao_CREATE(char *nomeCSV, char *nomeBin){
