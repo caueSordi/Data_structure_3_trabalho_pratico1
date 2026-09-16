@@ -18,4 +18,11 @@ int main(){
             printf("Falha no processamento do arquivo.\n");
         }     
     }
+
+    if (func == 2)
+    {
+        scanf("%s", nomeBin);
+        funcao_READ_ALL(nomeBin);
+    }
+
 }

@@ -32,23 +32,28 @@ void Escrever_registro(FILE *arquivo,  Registro *reg)
     fwrite(&reg->unidade_medida,     sizeof(char), 1, arquivo);
 }
  
-void Imprimir_registro( const Registro *reg)
+void Imprimir_registro(const Registro *reg)
 {
-  
-    printf("idPoPs: ");
-    if (reg->IDPoPs == VALOR_NULO_INT) printf("NULO\n");
-    else                               printf("%d\n", reg->IDPoPs);
- 
-    printf("idPoPsConectado: ");
-    if (reg->IDPoPs_Conectado == VALOR_NULO_INT) printf("NULO\n");
-    else                                        printf("%d\n", reg->IDPoPs_Conectado);
- 
-    printf("velocidade: ");
-    if (reg->velocidade == VALOR_NULO_INT) printf("NULO\n");
-    else                                   printf("%d\n", reg->velocidade);
- 
-    printf("unidadeMedida: ");
-    if (reg->unidade_medida == VALOR_NULO_CHAR) printf("NULO\n");
-    else                                       printf("%c\n", reg->unidade_medida);
+    if (reg->removido == REGISTRO_REMOVIDO)
+        return; /* nunca imprime removidos */
+
+    if (reg->IDPoPs == VALOR_NULO_INT)
+        printf("NULO ");
+    else
+        printf("%d ", reg->IDPoPs);
+
+    if (reg->IDPoPs_Conectado == VALOR_NULO_INT)
+        printf("NULO ");
+    else
+        printf("%d ", reg->IDPoPs_Conectado);
+
+    if (reg->velocidade == VALOR_NULO_INT)
+        printf("NULO ");
+    else
+        printf("%d ", reg->velocidade);
+
+    if (reg->unidade_medida == VALOR_NULO_CHAR)
+        printf("NULO\n");
+    else
+        printf("\"%c\"\n", reg->unidade_medida);
 }
- 

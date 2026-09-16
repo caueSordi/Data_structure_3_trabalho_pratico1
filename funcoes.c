@@ -71,3 +71,54 @@ int funcao_CREATE(char *nomeCSV, char *nomeBin){
     arquivo_Close(&arqBIN);
     BinarioNaTela(nomeBin);
 }
+
+
+//Funcao 2:lista todos os registros (todos registros nao excluidos) 
+
+int funcao_READ_ALL(char *nomeBin){
+    FILE *arqBIN = fopen(nomeBin, "rb");
+
+    //mensagem de erro
+    if(arqBIN == NULL){
+        printf("Falha no processamento do arquivo.\n");
+        return 1;
+    }
+
+    //lê cabecalho 
+    Cabecalho cab ;
+    if(!Ler_Cabecalho(arqBIN, &cab)){
+        printf("Falha no processamento do arquivo.\n");
+        return 1;
+    }
+
+    if(cab.status == STATUS_INCONSISTENTE){
+        printf("Falha no processamento do arquivo.\n");
+        fclose (arqBIN);
+        return 1;
+
+    }
+
+    //Ler_Cabecalho já deixouo ponteiro para o inicio ro RRN 0, mas o fseek  deixa isso explicito e protege contra mudanças na leitura do cabecalho
+
+    fseek(arqBIN, TAMANHO_CABECALHO, SEEK_SET);
+
+    Registro reg;
+    int encontrado = 0;
+
+    while (Ler_registro (arqBIN, &reg)){
+        if(reg.removido == REGISTRO_REMOVIDO)
+            continue;
+
+        Imprimir_registro(&reg);
+        encontrado = 1;
+
+    }
+    // Fim da leitura dos registros
+    
+    if (!encontrado) {
+        printf("Registro inexistente\n");
+    }
+
+    fclose(arqBIN);
+    return 0;
+}

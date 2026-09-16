@@ -6,5 +6,5 @@
 #include "busca.h"
 
 int funcao_CREATE(char *nomeCSV, char *nomeBin);
-
+int funcao_READ_ALL(char *nomeBin);
 #endif
