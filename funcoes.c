@@ -76,6 +76,7 @@ int funcao_CREATE(char *nomeCSV, char *nomeBin){
 //Funcao 2:lista todos os registros (todos registros nao excluidos) 
 
 int funcao_READ_ALL(char *nomeBin){
+   //USAR AS FUNCOES DO ARQUVIO.H
     FILE *arqBIN = fopen(nomeBin, "rb");
 
     //mensagem de erro
@@ -121,4 +122,15 @@ int funcao_READ_ALL(char *nomeBin){
 
     fclose(arqBIN);
     return 0;
+}
+
+//funcão 3: busca filtrada sequencial
+
+void funcao_READVALUE(char *nomeBin, char *campoChar, int campoInt, int valor, char *valorChar){
+    //abertura do arquivo para leitura
+    FILE *arqBIN;
+    arquivo_Abertura(&arqBIN, nomeBin, "rb");
+
+
+
 }
