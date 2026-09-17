@@ -134,3 +134,45 @@ void funcao_READVALUE(char *nomeBin, char *campoChar, int campoInt, int valor, c
 
 
 }
+
+//Funcao 4: Busca por RRN, recebe o RRN e calcula a posicao com RRN_posicao
+
+int funcao_SELECT_RRN(char *nomeBin, int RRN){
+    //abre arquivo
+    FILE *arqBIN = fopen(nomeBin, "rb");
+
+    if (arqBIN == NULL) {
+        printf("Falha no processamento do arquivo.\n");
+        return 1;
+    }
+
+    Cabecalho cab;
+    if(!Ler_Cabecalho(arqBIN, &cab) || cab.status == STATUS_INCONSISTENTE){
+        printf("Falha no processamento do arquivo.\n");
+        fclose(arqBIN);
+        return 1;
+    }
+
+    if(RRN < 0 || RRN >= cab.proxRNN){
+        printf("Registro inexistente.\n");
+        fclose(arqBIN);
+        return 0;
+    }
+
+    Registro reg;
+    if(!Ler_registro_rrn(arqBIN, RRN, &reg)){
+        printf("Falha no processamento do arquivo.\n");
+        fclose(arqBIN);
+        return 1;
+    }
+
+    if(reg.removido == REGISTRO_REMOVIDO){
+        printf("Registro inexistente.\n");
+        fclose(arqBIN);
+        return 0;
+    }
+
+    Imprimir_registro(&reg);
+    fclose(arqBIN);
+    return 0;
+}
