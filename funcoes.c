@@ -264,16 +264,24 @@ int funcao_DELETE(char *nomeBin){
                 scanf("%s", valorCampo[j]);
         }
         
-        // Loop para encontrar e remover os registros
-        for (int rrn = 0; rrn < cab.proxRNN; rrn++) {
+        // --- LOOP SEQUENCIAL (Bypassa qualquer bug do Ler_registro_rrn) ---
+        arquivo_PosCabecalho(arqBIN); 
+        int rrn = 0;
+        
+        while (rrn < cab.proxRNN) {
+            long pos_atual = ftell(arqBIN); // salva a posicao exata do disco
             Registro reg;
-            if (!Ler_registro_rrn(arqBIN, rrn, &reg))
-                continue;
             
-            if (reg.removido == REGISTRO_REMOVIDO)
+            // Ler_registro normal (sequencial) funciona perfeitamente!
+            if (!Ler_registro(arqBIN, &reg))
+                break;
+            
+            if (reg.removido == REGISTRO_REMOVIDO) {
+                rrn++;
                 continue;
+            }
 
-            // --- CHECAGEM EXATA E BLINDADA ---
+            // Checagem blindada
             int match = 1;
             for (int j = 0; j < nCriterios; j++) {
                 if (strcmp(nomeCampo[j], "idPoPs") == 0) {
@@ -290,18 +298,23 @@ int funcao_DELETE(char *nomeBin){
                 }
             }
 
-            if (!match)
-                continue; // Nao passou 100% nos criterios
+            if (!match){
+                rrn++;
+                continue;
+            }
             
             // --- REMOCAO ---
             reg.removido = REGISTRO_REMOVIDO;
-            reg.encadeamento_pilha = cab.topo_Pilha; // empilha 
+            reg.encadeamento_pilha = cab.topo_Pilha;
             cab.topo_Pilha = rrn;
             cab.nroRegRem++;
-            cab.nroPares--; // diminui a contagem de ativos
+            // nroPares PERMANECE INTACTO E OS DADOS TAMBEM!
 
-            fseek(arqBIN, RRN_posicao(rrn), SEEK_SET);
+            // Retorna o ponteiro para reescrever SOMENTE este registro
+            fseek(arqBIN, pos_atual, SEEK_SET);
             Escrever_registro(arqBIN, &reg);
+            
+            rrn++;
         }
     }
 
@@ -378,8 +391,103 @@ int funcao_INSERT(char *nomeBin, int quantBusca){
 
     return 0;
 }
+// Funcao 7: Atualiza registros baseados em criterios de busca
+int funcao_UPDATE(char *nomeBin, int quantBusca) {
+    FILE *arqBIN = fopen(nomeBin, "rb+");
+    if (arqBIN == NULL) {
+        printf("Falha no processamento do arquivo.\n");
+        return 1;
+    }
 
-  int funcao_UPDATE(char *nomeBin, int quantBusca) {
-      printf("Falha no processamento do arquivo.\n");
-      return 1;
-  }
+    Cabecalho cab;
+    if (!Ler_Cabecalho(arqBIN, &cab) || cab.status == STATUS_INCONSISTENTE) {
+        printf("Falha no processamento do arquivo.\n");
+        fclose(arqBIN);
+        return 1;
+    }
+
+    cab.status = '0';
+    fseek(arqBIN, 0, SEEK_SET);
+    Escrever_Cabecalho(arqBIN, &cab);
+
+    for (int i = 0; i < quantBusca; i++) {
+        int nCriteriosBusca;
+        scanf("%d", &nCriteriosBusca);
+
+        char buscaCampo[5][20];
+        char buscaValor[5][20];
+
+        // Lendo criterios de BUSCA
+        for (int j = 0; j < nCriteriosBusca; j++) {
+            scanf("%s", buscaCampo[j]);
+            if (strcmp(buscaCampo[j], "unidadeMedida") == 0)
+                ScanQuoteString(buscaValor[j]);
+            else
+                scanf("%s", buscaValor[j]);
+        }
+
+        int nCriteriosUpdate;
+        scanf("%d", &nCriteriosUpdate);
+
+        char atualizaCampo[5][20];
+        char atualizaValor[5][20];
+
+        // Lendo criterios de ATUALIZACAO
+        for (int j = 0; j < nCriteriosUpdate; j++) {
+            scanf("%s", atualizaCampo[j]);
+            if (strcmp(atualizaCampo[j], "unidadeMedida") == 0)
+                ScanQuoteString(atualizaValor[j]);
+            else
+                scanf("%s", atualizaValor[j]);
+        }
+
+        // Busca sequencial (igual fizemos no DELETE)
+        arquivo_PosCabecalho(arqBIN);
+        int rrn = 0;
+
+        while (rrn < cab.proxRNN) {
+            long pos_atual = ftell(arqBIN);
+            Registro reg;
+
+            if (!Ler_registro(arqBIN, &reg)) break;
+
+            if (reg.removido == REGISTRO_REMOVIDO) {
+                rrn++;
+                continue;
+            }
+
+            // REAPROVEITA SUA FUNCAO DE BUSCA (Funcao 3)
+            if (registro_SatisfazCriterio(&reg, buscaCampo, buscaValor, nCriteriosBusca)) {
+                
+                // ATUALIZANDO OS CAMPOS
+                for (int k = 0; k < nCriteriosUpdate; k++) {
+                    if (strcmp(atualizaCampo[k], "idPoPs") == 0) {
+                        reg.IDPoPs = (strcmp(atualizaValor[k], "NULO") == 0) ? VALOR_NULO_INT : atoi(atualizaValor[k]);
+                    } 
+                    else if (strcmp(atualizaCampo[k], "idPoPsConectado") == 0) {
+                        reg.IDPoPs_Conectado = (strcmp(atualizaValor[k], "NULO") == 0) ? VALOR_NULO_INT : atoi(atualizaValor[k]);
+                    } 
+                    else if (strcmp(atualizaCampo[k], "velocidade") == 0) {
+                        reg.velocidade = (strcmp(atualizaValor[k], "NULO") == 0) ? VALOR_NULO_INT : atoi(atualizaValor[k]);
+                    } 
+                    else if (strcmp(atualizaCampo[k], "unidadeMedida") == 0) {
+                        reg.unidade_medida = (atualizaValor[k][0] == '\0') ? VALOR_NULO_CHAR : atualizaValor[k][0];
+                    }
+                }
+
+                // Volta e sobrescreve o registro atualizado
+                fseek(arqBIN, pos_atual, SEEK_SET);
+                Escrever_registro(arqBIN, &reg);
+            }
+            rrn++;
+        }
+    }
+
+    cab.status = '1';
+    fseek(arqBIN, 0, SEEK_SET);
+    Escrever_Cabecalho(arqBIN, &cab);
+    
+    fclose(arqBIN);
+    BinarioNaTela(nomeBin);
+    return 0;
+}

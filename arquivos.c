@@ -57,43 +57,51 @@ int arquivo_LeChar(FILE *pontArquivo, char *dado ){
     return 1;
 }
 
-int arquivo_LeInt(FILE *pontArquivo, int *dado ){
-    if(fread(&dado, sizeof(*dado), 1, pontArquivo) != 1){
-        return 0; // EOF ou erro 
-    }
-    return 1;
-}
-
-//leitura do arquivo csv e separação entre 4 campos
+//leitura do arquivo csv blindada contra espaços vazios (trim)
 int csv_LeLinha(FILE *arqCSV, int *idPoPs, int *idPoPsConectado, int *velocidade, char *unidadeMedida){
     char linha[500];
-    
     if(fgets(linha, sizeof(linha), arqCSV) == NULL){
-        return 0; //final do arquivo
+        return 0; // EOF
     }
 
-    char campoVeloc[10] = "";
-    char campoUnidade[10] = "";
+    // Remove a quebra de linha do final
+    linha[strcspn(linha, "\r\n")] = '\0';
 
-    sscanf(linha, "%d, %d, %[^,],%[^\n]", idPoPs, idPoPsConectado, campoVeloc, campoUnidade);
+    char buffer[50];
+    int pos = 0, col = 0;
+    char *ptr = linha;
 
-    //caso velocidade seja nula
-    if(campoVeloc[0] == '\0' || campoVeloc[0] == ' '){
-        *velocidade = -1;
-    }else{
-        *velocidade = atoi(campoVeloc);
+    *idPoPs = -1;
+    *idPoPsConectado = -1;
+    *velocidade = -1;
+    *unidadeMedida = '$';
+
+    while (*ptr != '\0' && col < 4) {
+        pos = 0;
+        // Ignora espaços em branco antes do valor
+        while (*ptr == ' ' || *ptr == '\t') ptr++;
+        
+        // Lê os caracteres até achar a vírgula
+        while (*ptr != ',' && *ptr != '\0') {
+            buffer[pos++] = *ptr++;
+        }
+        
+        // Ignora espaços em branco no final do valor (trim)
+        while (pos > 0 && (buffer[pos-1] == ' ' || buffer[pos-1] == '\t')) pos--;
+        buffer[pos] = '\0';
+
+        if (pos > 0) {
+            if (col == 0) *idPoPs = atoi(buffer);
+            else if (col == 1) *idPoPsConectado = atoi(buffer);
+            else if (col == 2) *velocidade = atoi(buffer);
+            else if (col == 3) *unidadeMedida = buffer[0];
+        }
+
+        if (*ptr == ',') ptr++; 
+        col++;
     }
-    //caso unidadeMedida seja nula
-    if(campoUnidade[0] == '\0' || campoUnidade[0] == ' '){
-        *unidadeMedida = '$';
-    } else{
-        *unidadeMedida = campoUnidade[0];
-    }
-
     return 1;
 }
-
-
 void Inicializa_Cabecalho(Cabecalho *cab)
 {
     cab->status = STATUS_INCONSISTENTE;

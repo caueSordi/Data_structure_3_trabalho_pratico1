@@ -32,7 +32,7 @@ int main(){
         case 4:
             scanf("%s %d", nomeBin, &RRN);
             funcao_SELECT_RRN(nomeBin, RRN);
-            break; // O break precisa ficar aqui no final, depois da execução
+            break;
             
         case 5: 
             scanf("%s", nomeBin);
@@ -47,7 +47,7 @@ int main(){
         case 7: 
             scanf("%s %d", nomeBin, &quantBusca);
             funcao_UPDATE(nomeBin, quantBusca);
-            break; // Adicionado um break aqui por boas práticas
+            break;
     }
 
     return 0;
