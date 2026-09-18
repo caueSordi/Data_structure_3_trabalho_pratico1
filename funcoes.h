@@ -11,4 +11,5 @@ int funcao_READVALUE(int quantBusca, char *nomeBin);
 int funcao_SELECT_RRN(char *nomeBin, int RRN);
 int funcao_DELETE(char *nomeBin);
 int funcao_INSERT(char *nomeBin, int quantBusca);
+int funcao_UPDATE(char *nomeBin, int quantBusca);
 #endif

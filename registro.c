@@ -1,4 +1,5 @@
 #include "registro.h"
+#include "arquivos.h"
 
 void Inicializa_registro(Registro *reg)
 {

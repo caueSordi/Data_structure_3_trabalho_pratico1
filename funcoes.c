@@ -184,12 +184,15 @@ int funcao_READVALUE(int quantBusca, char *nomeBin){
 }
 
 //Funcao 4: Busca por RRN, recebe o RRN e calcula a posicao com RRN_posicao
-
 int funcao_SELECT_RRN(char *nomeBin, int RRN){
     //abre arquivo
     FILE *arqBIN = fopen(nomeBin, "rb");
-
-    arquivo_Abertura(arqBIN);
+    
+    // VERIFICAÇÃO ADICIONADA AQUI:
+    if (arqBIN == NULL) {
+        printf("Falha no processamento do arquivo.\n");
+        return 1;
+    }
 
     Cabecalho cab;
     if(!Ler_Cabecalho(arqBIN, &cab) || cab.status == STATUS_INCONSISTENTE){
@@ -221,8 +224,7 @@ int funcao_SELECT_RRN(char *nomeBin, int RRN){
     fclose(arqBIN);
     return 0;
 }
-
-//Funcao 5: remocao logica, le o conjunto de criterios igual a 3, percorre  arquivo e marca REGISTRO_REMOVIDO, coloca os registros na pilha
+//Funcao 5: remocao logica, percorre arquivo e marca REGISTRO_REMOVIDO
 int funcao_DELETE(char *nomeBin){
     int n;
     scanf("%d", &n);
@@ -240,53 +242,85 @@ int funcao_DELETE(char *nomeBin){
         return 1;
     }
 
-    int idPoPs, idPoPsConectado, velocidade;
-    char unidade;
+    //marca arquivo como inconsistente durante a modificacao
+    cab.status = '0';
+    fseek(arqBIN, 0, SEEK_SET);
+    Escrever_Cabecalho(arqBIN, &cab);
 
-    //Leitura dos Criterios
+    //Leitura das buscas
     for (int i = 0; i < n; i++) {
         int nCriterios;
         scanf("%d", &nCriterios);
 
-        Criterio criterios[MAX_CRITERIOS];
+        char nomeCampo[5][20];
+        char valorCampo[5][50];
+
+        // Lendo os criterios desta busca
         for (int j = 0; j < nCriterios; j++) {
-            scanf("%s", criterios[j].nomeCampo);
-            // unidade medida esta entre aspas
-            if (strcmp(criterios[j].nomeCampo, "unidadeMedida") == 0)
-                ScanQuoteString(criterios[j].valor);
+            scanf("%s", nomeCampo[j]);
+            if (strcmp(nomeCampo[j], "unidadeMedida") == 0)
+                ScanQuoteString(valorCampo[j]);
             else
-                scanf("%s", criterios[j].valor);
+                scanf("%s", valorCampo[j]);
         }
-        //loop para ir removendo os registros que batem o criterio
+        
+        // Loop para encontrar e remover os registros
         for (int rrn = 0; rrn < cab.proxRNN; rrn++) {
             Registro reg;
             if (!Ler_registro_rrn(arqBIN, rrn, &reg))
                 continue;
-            if (!Registro_satisfaz(&reg, criterios, nCriterios))
+            
+            if (reg.removido == REGISTRO_REMOVIDO)
                 continue;
-            //muda status do registro e atualiza o topo_pilha
+
+            // --- CHECAGEM EXATA E BLINDADA ---
+            int match = 1;
+            for (int j = 0; j < nCriterios; j++) {
+                if (strcmp(nomeCampo[j], "idPoPs") == 0) {
+                    if (reg.IDPoPs != atoi(valorCampo[j])) match = 0;
+                } 
+                else if (strcmp(nomeCampo[j], "idPoPsConectado") == 0) {
+                    if (reg.IDPoPs_Conectado != atoi(valorCampo[j])) match = 0;
+                } 
+                else if (strcmp(nomeCampo[j], "velocidade") == 0) {
+                    if (reg.velocidade != atoi(valorCampo[j])) match = 0;
+                } 
+                else if (strcmp(nomeCampo[j], "unidadeMedida") == 0) {
+                    if (reg.unidade_medida != valorCampo[j][0]) match = 0;
+                }
+            }
+
+            if (!match)
+                continue; // Nao passou 100% nos criterios
+            
+            // --- REMOCAO ---
             reg.removido = REGISTRO_REMOVIDO;
             reg.encadeamento_pilha = cab.topo_Pilha; // empilha 
             cab.topo_Pilha = rrn;
             cab.nroRegRem++;
-            //cab.nroPares--; // comentario temporario
+            cab.nroPares--; // diminui a contagem de ativos
 
             fseek(arqBIN, RRN_posicao(rrn), SEEK_SET);
             Escrever_registro(arqBIN, &reg);
         }
     }
 
-    // cabecalho mudou (topoPilha, nroRegRem, nroPares): reescreve 
+    // finalizou remocoes: arquivo volta a ficar consistente
+    cab.status = '1';
     fseek(arqBIN, 0, SEEK_SET);
     Escrever_Cabecalho(arqBIN, &cab);
+    
     fclose(arqBIN);
     BinarioNaTela(nomeBin);
     return 0;
 }
-
+//Funcao 6: insercao com reaproveitamento de espacos removidos
+//(pilha) ou no final do arquivo, quando a pilha esta vazia
 int funcao_INSERT(char *nomeBin, int quantBusca){
     FILE *arqBin;
-    arquivo_Abertura(arqBin, nomeBin, "wb");
+    /* "rb+" preserva o conteudo existente; "wb" apagaria o
+     * arquivo inteiro */
+    arquivo_Abertura(&arqBin, nomeBin, "rb+");
 
     Cabecalho cab;
     if(!Ler_Cabecalho(arqBin, &cab) || cab.status == STATUS_INCONSISTENTE){
@@ -294,40 +328,58 @@ int funcao_INSERT(char *nomeBin, int quantBusca){
         fclose(arqBin);
         return 1;
     }
-    Registro reg;
-    char removido = '0';
-    int encadeamento_pilha = -1;
-    int posicaoInsert = cab.proxRNN;
-    int id, conect, velo, unid;
-    int auxRNN = 0;
-    int atualRNN =  cab.topo_Pilha;
 
-    for(int i=0; i<quantBusca; i++){
-        scanf("%d %d %d",&id, &conect, &velo);
-        ScanQuoteString(unid);
+    for(int i = 0; i < quantBusca; i++){
+        char strId[32], strConect[32], strVelo[32], strUnid[32];
 
-        //buscandos os elemnetos da pilha
-        while(atualRNN != -1){
-            Ler_registro_rrn(arqBin, atualRNN, &reg);
+        /* le como texto pra poder tratar "NULO" nos campos
+         * numericos tambem, igual csv_LeLinha ja faz na [1] */
+        scanf("%s %s %s", strId, strConect, strVelo);
+        ScanQuoteString(strUnid);
 
-            atualRNN = reg.encadeamento_pilha;
-            if( reg.encadeamento_pilha != 1)
-                auxRNN = reg.encadeamento_pilha;
-                print("%d \n", auxRNN);
+        Registro reg;
+        reg.removido = REGISTRO_NAO_REMOVIDO;
+        reg.encadeamento_pilha = -1;
 
+        reg.IDPoPs           = (strcmp(strId, "NULO") == 0)     ? VALOR_NULO_INT  : atoi(strId);
+        reg.IDPoPs_Conectado = (strcmp(strConect, "NULO") == 0) ? VALOR_NULO_INT  : atoi(strConect);
+        reg.velocidade       = (strcmp(strVelo, "NULO") == 0)   ? VALOR_NULO_INT  : atoi(strVelo);
+        reg.unidade_medida   = (strUnid[0] == '\0')             ? VALOR_NULO_CHAR : strUnid[0];
+
+        int rrnDestino;
+
+        if (cab.topo_Pilha != -1) {
+            /* tem espaco removido: reaproveita o TOPO da pilha */
+            rrnDestino = cab.topo_Pilha;
+
+            Registro removidoAntigo;
+            Ler_registro_rrn(arqBin, rrnDestino, &removidoAntigo);
+            cab.topo_Pilha = removidoAntigo.encadeamento_pilha; /* desempilha */
+
+            cab.nroRegRem--;
+        } else {
+            /* pilha vazia: escreve no final do arquivo */
+            rrnDestino = cab.proxRNN;
+            cab.proxRNN++;
+            //cab.nroPares++;
         }
 
-        //inserção
-        //posicionando o ponteiro
-        arquivo_posicSeek(arqBin, auxRNN);
+        arquivo_posicSeek(arqBin, rrnDestino);
+        Escrever_registro(arqBin, &reg);
 
-        //escrita dos campos
-        arquivo_EscreveChar(arqBin, removido);
-        arquivo_EscreveInt(arqBin, encadeamento_pilha);
-        arquivo_EscreveInt(arqBin, id);
-        arquivo_EscreveInt(arqBin, conect);
-        arquivo_EscreveInt(arqBin, velo);
-        arquivo_EscreveChar(arqBin, unid);
+        // cab.nroPares++;
+    }
 
+    fseek(arqBin, 0, SEEK_SET);
+    Escrever_Cabecalho(arqBin, &cab);
 
+    fclose(arqBin);
+    BinarioNaTela(nomeBin);
+
+    return 0;
 }
+
+  int funcao_UPDATE(char *nomeBin, int quantBusca) {
+      printf("Falha no processamento do arquivo.\n");
+      return 1;
+  }
