@@ -189,10 +189,7 @@ int funcao_SELECT_RRN(char *nomeBin, int RRN){
     //abre arquivo
     FILE *arqBIN = fopen(nomeBin, "rb");
 
-    if (arqBIN == NULL) {
-        printf("Falha no processamento do arquivo.\n");
-        return 1;
-    }
+    arquivo_Abertura(arqBIN);
 
     Cabecalho cab;
     if(!Ler_Cabecalho(arqBIN, &cab) || cab.status == STATUS_INCONSISTENTE){
@@ -282,4 +279,24 @@ int funcao_DELETE(char *nomeBin){
     fclose(arqBIN);
     BinarioNaTela(nomeBin);
     return 0;
+}
+
+int funcao_INSERT(char *nomeBin, int quantBusca){
+    FILE *arqBin;
+    arquivo_Abertura(arqBin, nomeBin, "wb");
+
+    Cabecalho cab;
+    if(!Ler_Cabecalho(arqBin, &cab) || cab.status == STATUS_INCONSISTENTE){
+        printf("Falha no processamento do arquivo.\n");
+        fclose(arqBin);
+        return 1;
+    }
+
+    int posicaoInsert = cab.proxRNN;
+    int id, conect, velo, unid;
+
+    for(int i=0; i<quantBusca; i++){
+        scanf("%d %d %d",&id, &conect, &velo);
+        ScanQuoteString(unid);
+    }
 }

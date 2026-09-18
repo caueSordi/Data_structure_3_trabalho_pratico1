@@ -8,35 +8,45 @@ int main(){
     int func=0, RRN=0, quantBusca=0;
     scanf("%d", &func);
 
-    if(func == 1)
-    {
+    switch(func)
+    {case 1:
+    
         scanf("%s %s", nomeCSV, nomeBin);
 
         if(!strcmp(nomeCSV, nomeCSV_esperado)){
             funcao_CREATE(nomeCSV, nomeBin);
         }else{
             printf("Falha no processamento do arquivo.\n");
-        }     
-    }
-
-    if (func == 2)
-    {
+        }
+        break;     
+    
+    case 2:
         scanf("%s", nomeBin);
         funcao_READ_ALL(nomeBin);
-    }
-    if(func == 3){
+        break;
+   case 3:
+   
         scanf("%s %d", nomeBin,  &quantBusca);
         funcao_READVALUE(quantBusca, nomeBin);
-    }
-    if (func == 4)
-    {
+        break;
+   case  4:
+    break;
         scanf("%s %d", nomeBin, &RRN);
         funcao_SELECT_RRN(nomeBin, RRN);
-    }
-
-    if (func == 5)
-    {
+        break;
+   case 5: 
         scanf("%s", nomeBin);
         funcao_DELETE(nomeBin);
+        break;
+    case 6:
+        scanf("%s %d", nomeBin, &quantBusca);
+        funcao_INSERT(nomeBin, quantBusca);
+        break;
+    case 7: 
+        scanf("%s %d", nomeBin, &quantBusca);
+        funcao_UPDATE(nomeBin, quantBusca);
+
     }
+
+return 0;
 }
