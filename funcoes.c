@@ -1,5 +1,6 @@
 #include "funcoes.h"
-
+#include <string.h> 
+#include <stdio.h>
 //Função 1: Leitura do CSV, Criação e Escrita no .bin
 int funcao_CREATE(char *nomeCSV, char *nomeBin){
     FILE *arqCSV, *arqBIN;
@@ -174,5 +175,64 @@ int funcao_SELECT_RRN(char *nomeBin, int RRN){
 
     Imprimir_registro(&reg);
     fclose(arqBIN);
+    return 0;
+}
+
+//Funcao 5: remocao logica, le o conjunto de criterios igual a 3, percorre  arquivo e marca REGISTRO_REMOVIDO, coloca os registros na pilha
+int funcao_DELETE(char *nomeBin){
+    int n;
+    scanf("%d", &n);
+
+    FILE *arqBIN = fopen(nomeBin, "rb+");
+    if (arqBIN == NULL) {
+        printf("Falha no processamento do arquivo.\n");
+        return 1;
+    }
+
+    Cabecalho cab;
+    if(!Ler_Cabecalho(arqBIN, &cab) || cab.status == STATUS_INCONSISTENTE){
+        printf("Falha no processamento do arquivo.\n");
+        fclose(arqBIN);
+        return 1;
+    }
+
+    //Leitura dos Criterios
+    for (int i = 0; i < n; i++) {
+        int nCriterios;
+        scanf("%d", &nCriterios);
+
+        Criterio criterios[MAX_CRITERIOS];
+        for (int j = 0; j < nCriterios; j++) {
+            scanf("%s", criterios[j].nomeCampo);
+            // unidade medida esta entre aspas
+            if (strcmp(criterios[j].nomeCampo, "unidadeMedida") == 0)
+                ScanQuoteString(criterios[j].valor);
+            else
+                scanf("%s", criterios[j].valor);
+        }
+        //loop para ir removendo os registros que batem o criterio
+        for (int rrn = 0; rrn < cab.proxRNN; rrn++) {
+            Registro reg;
+            if (!Ler_registro_rrn(arqBIN, rrn, &reg))
+                continue;
+            if (!Registro_satisfaz(&reg, criterios, nCriterios))
+                continue;
+            //muda status do registro e atualiza o topo_pilha
+            reg.removido = REGISTRO_REMOVIDO;
+            reg.encadeamento_pilha = cab.topo_Pilha; // empilha 
+            cab.topo_Pilha = rrn;
+            cab.nroRegRem++;
+            //cab.nroPares--; // comentario temporario
+
+            fseek(arqBIN, RRN_posicao(rrn), SEEK_SET);
+            Escrever_registro(arqBIN, &reg);
+        }
+    }
+
+    // cabecalho mudou (topoPilha, nroRegRem, nroPares): reescreve 
+    fseek(arqBIN, 0, SEEK_SET);
+    Escrever_Cabecalho(arqBIN, &cab);
+    fclose(arqBIN);
+    BinarioNaTela(nomeBin);
     return 0;
 }

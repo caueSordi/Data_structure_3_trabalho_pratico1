@@ -30,4 +30,10 @@ int main(){
         scanf("%s %d", nomeBin, &RRN);
         funcao_SELECT_RRN(nomeBin, RRN);
     }
+
+    if (func == 5)
+    {
+        scanf("%s", nomeBin);
+        funcao_DELETE(nomeBin);
+    }
 }

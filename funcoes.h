@@ -8,5 +8,6 @@
 int funcao_CREATE(char *nomeCSV, char *nomeBin);
 int funcao_READ_ALL(char *nomeBin);
 int funcao_SELECT_RRN(char *nomeBin, int RRN);
+int funcao_DELETE(char *nomeBin);
 
 #endif

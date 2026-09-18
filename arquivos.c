@@ -94,7 +94,7 @@ void Inicializa_Cabecalho(Cabecalho *cab)
 {
     cab->status = STATUS_INCONSISTENTE;
     cab->proxRNN = 0;
-    cab->topoPiplha = -1;
+    cab->topo_Pilha = -1;
     cab->nroRegRem = 0;
     cab->nroPares = 0;
 
@@ -105,7 +105,7 @@ int Ler_Cabecalho(FILE *arquivo, Cabecalho *cab)
     if (fread(&cab->status, sizeof(char), 1, arquivo) != 1)
         return 0;
    
-    if (fread(&cab->topoPiplha, sizeof(int), 1, arquivo) != 1)
+    if (fread(&cab->topo_Pilha, sizeof(int), 1, arquivo) != 1)
         return 0;
      if (fread(&cab->proxRNN, sizeof(int), 1, arquivo) != 1)
         return 0;
@@ -119,7 +119,7 @@ int Ler_Cabecalho(FILE *arquivo, Cabecalho *cab)
 void Escrever_Cabecalho(FILE *arquivo, Cabecalho *cab)
 {
     fwrite(&cab->status, sizeof(char), 1, arquivo);
-    fwrite(&cab->topoPiplha, sizeof(int), 1, arquivo);
+    fwrite(&cab->topo_Pilha, sizeof(int), 1, arquivo);
     fwrite(&cab->proxRNN, sizeof(int),1, arquivo);
     fwrite(&cab->nroRegRem, sizeof(int), 1, arquivo);
     fwrite(&cab->nroPares, sizeof(int), 1, arquivo);
