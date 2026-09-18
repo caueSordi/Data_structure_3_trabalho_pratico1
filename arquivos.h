@@ -29,6 +29,7 @@ void arquivo_inicio(FILE *arquivo);
 
 //posiciona o ponteiro logo apos o cabecalho
 void arquivo_PosCabecalho(FILE *arquivo);
+void arquivo_posicSeek(FILE *arquivo, int rnn);
 
 // Escreve um campo do tipo char (1 byte) no arquivo, na posição atual do cursor.
 // Retorna 1 em sucesso, 0 em falha.
@@ -59,7 +60,6 @@ void Escrever_Cabecalho(FILE *arquivo, Cabecalho *cab);
 
 long RRN_posicao(int rrn);
 
-int Ler_registro_rrn(FILE *arquivo, int rrn, Registro *reg);
 
 void ScanQuoteString(char *str);
 void BinarioNaTela(char *arquivo);

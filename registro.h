@@ -50,6 +50,9 @@ void inicializar_registro(Registro *reg);
  //coloca o registro em um estado vazio conhecido antes de inserir dados
 
 int Ler_registro(FILE *arquivo, Registro *reg); 
+
+int Ler_registro_rrn(FILE *arquivo, int rrn, Registro *reg);
+
 //le um registro do arquivo, por campo e retorna 1 se leu ou 0 se deu erro ou EOF
 
 void Escrever_registro(FILE *arquivo, Registro *reg);

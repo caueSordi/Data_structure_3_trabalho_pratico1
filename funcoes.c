@@ -240,6 +240,9 @@ int funcao_DELETE(char *nomeBin){
         return 1;
     }
 
+    int idPoPs, idPoPsConectado, velocidade;
+    char unidade;
+
     //Leitura dos Criterios
     for (int i = 0; i < n; i++) {
         int nCriterios;
@@ -291,12 +294,40 @@ int funcao_INSERT(char *nomeBin, int quantBusca){
         fclose(arqBin);
         return 1;
     }
-
+    Registro reg;
+    char removido = '0';
+    int encadeamento_pilha = -1;
     int posicaoInsert = cab.proxRNN;
     int id, conect, velo, unid;
+    int auxRNN = 0;
+    int atualRNN =  cab.topo_Pilha;
 
     for(int i=0; i<quantBusca; i++){
         scanf("%d %d %d",&id, &conect, &velo);
         ScanQuoteString(unid);
-    }
+
+        //buscandos os elemnetos da pilha
+        while(atualRNN != -1){
+            Ler_registro_rrn(arqBin, atualRNN, &reg);
+
+            atualRNN = reg.encadeamento_pilha;
+            if( reg.encadeamento_pilha != 1)
+                auxRNN = reg.encadeamento_pilha;
+                print("%d \n", auxRNN);
+
+        }
+
+        //inserção
+        //posicionando o ponteiro
+        arquivo_posicSeek(arqBin, auxRNN);
+
+        //escrita dos campos
+        arquivo_EscreveChar(arqBin, removido);
+        arquivo_EscreveInt(arqBin, encadeamento_pilha);
+        arquivo_EscreveInt(arqBin, id);
+        arquivo_EscreveInt(arqBin, conect);
+        arquivo_EscreveInt(arqBin, velo);
+        arquivo_EscreveChar(arqBin, unid);
+
+
 }

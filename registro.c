@@ -22,6 +22,16 @@ int Ler_registro(FILE *arquivo, Registro *reg)
     return 1;
 }
 
+
+
+int Ler_registro_rrn(FILE *arquivo, int rrn, Registro *reg)
+{
+    if (fseek(arquivo, RRN_posicao(rrn), SEEK_SET) != 0)
+        return 0;
+    return Ler_registro(arquivo, reg);
+}
+
+
 void Escrever_registro(FILE *arquivo,  Registro *reg) 
 {
     fwrite(&reg->removido,          sizeof(char), 1, arquivo);

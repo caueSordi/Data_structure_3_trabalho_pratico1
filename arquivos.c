@@ -135,16 +135,9 @@ long RRN_posicao(int rrn)
 {
     return (TAMANHO_CABECALHO + (long)rrn * TAMANHO_REGISTRO);
     
-    ;
+    
 }
 
-
-int Ler_registro_rrn(FILE *arquivo, int rrn, Registro *reg)
-{
-    if (fseek(arquivo, RRN_posicao(rrn), SEEK_SET) != 0)
-        return 0;
-    return Ler_registro(arquivo, reg);
-}
 
 
 
