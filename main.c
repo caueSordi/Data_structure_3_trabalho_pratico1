@@ -5,7 +5,7 @@
 int main(){
 
     char nomeCSV[50], nomeBin[50];
-    int func=0, RRN=0;
+    int func=0, RRN=0, quantBusca=0;
     scanf("%d", &func);
 
     if(func == 1)
@@ -24,7 +24,10 @@ int main(){
         scanf("%s", nomeBin);
         funcao_READ_ALL(nomeBin);
     }
-
+    if(func == 3){
+        scanf("%s %d", nomeBin,  &quantBusca);
+        funcao_READVALUE(quantBusca, nomeBin);
+    }
     if (func == 4)
     {
         scanf("%s %d", nomeBin, &RRN);

@@ -2,7 +2,8 @@
 #define REGISTRO_H
  
 #include <stdio.h>
- 
+#include <string.h>
+#include <stdlib.h>
 
 #define TAMANHO_REMOVIDO    1
 #define TAMANHO_ENCADEAMENTO 4
@@ -55,5 +56,12 @@ void Escrever_registro(FILE *arquivo, Registro *reg);
 //escreve um registro no arquivo com todos os campos em ordem
 
 void Imprimir_registro(const Registro *reg);
+
+int registro_SatisfazCriterio(Registro *reg, char nomeCampo[][20], char valorCampo[][20], int quantCampos);
+
+int campoIntCMP(char *valorTexto);
+
+char campoCharCMP(char *valorTexto);
+
 
 #endif

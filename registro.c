@@ -57,3 +57,55 @@ void Imprimir_registro(const Registro *reg)
     else
         printf("\"%c\"\n", reg->unidade_medida);
 }
+
+int registro_SatisfazCriterio(Registro *reg, char nomeCampo[][20], char valorCampo[][20], int quantCampos){
+    for(int i=0; i< quantCampos; i++)
+    {
+        if(!strcmp(nomeCampo[i], "idPoPs")){
+            int valor = campoIntCMP(valorCampo[i]);
+            if(reg->IDPoPs != valor)
+                return 0;
+        }
+        else if(!strcmp(nomeCampo[i], "idPoPsConectado")){
+            int valor = campoIntCMP(valorCampo[i]);
+            if ((reg->IDPoPs_Conectado != valor))
+            {
+                return 0;
+            }
+            
+        }
+         else if(!strcmp(nomeCampo[i], "velocidade")){
+            int valor = campoIntCMP(valorCampo[i]);
+            if ((reg->velocidade != valor))
+            {
+                return 0;
+            }
+            
+        }
+         else if(!strcmp(nomeCampo[i], "unidadeMedida")){
+            int valor = campoCharCMP(valorCampo[i]);
+            if ((reg->unidade_medida != valor))
+            {
+                return 0;
+            }
+            
+        }
+    }
+
+    return 1;//passou por todos e nao achou
+}
+
+int campoIntCMP(char *valorTexto){
+    if(!strcmp(valorTexto, "NULO")){
+        return -1;
+    }
+    int aux = atoi(valorTexto);
+    return aux;
+}
+
+char campoCharCMP(char *valorTexto){
+    if(!strcmp(valorTexto, "NULO")){
+        return '$';
+    }
+    return valorTexto[0]; // já sem aspas, se você tratou isso no ScanQuoteString
+}

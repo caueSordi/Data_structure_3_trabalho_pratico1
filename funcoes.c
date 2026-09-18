@@ -1,6 +1,8 @@
 #include "funcoes.h"
 #include <string.h> 
 #include <stdio.h>
+#include <stdlib.h>
+
 //Função 1: Leitura do CSV, Criação e Escrita no .bin
 int funcao_CREATE(char *nomeCSV, char *nomeBin){
     FILE *arqCSV, *arqBIN;
@@ -101,8 +103,7 @@ int funcao_READ_ALL(char *nomeBin){
     }
 
     //Ler_Cabecalho já deixouo ponteiro para o inicio ro RRN 0, mas o fseek  deixa isso explicito e protege contra mudanças na leitura do cabecalho
-
-    fseek(arqBIN, TAMANHO_CABECALHO, SEEK_SET);
+    arquivo_PosCabecalho(arqBIN);
 
     Registro reg;
     int encontrado = 0;
@@ -127,13 +128,59 @@ int funcao_READ_ALL(char *nomeBin){
 
 //funcão 3: busca filtrada sequencial
 
-void funcao_READVALUE(char *nomeBin, char *campoChar, int campoInt, int valor, char *valorChar){
+int funcao_READVALUE(int quantBusca, char *nomeBin){
+    int quantCampos =0;
+    char aux[20];
+    Registro reg;
+   
+
+
     //abertura do arquivo para leitura
     FILE *arqBIN;
     arquivo_Abertura(&arqBIN, nomeBin, "rb");
 
+    
+    for(int i=0; i<quantBusca; i++)
+    {
+        int encontrado = 0;
+        scanf("%d", &quantCampos);
 
+        char nomeCampo[quantCampos][20];
+        char valorCampo[quantCampos][20];
 
+        //lendo os dados de pesquisa
+        for(int j =0; j<quantCampos; j++){
+            scanf("%s", nomeCampo[j]);
+            if(!strcmp(nomeCampo[j], "unidadeMedida")){
+                ScanQuoteString(valorCampo[j]);
+            }
+            else{
+                scanf("%s", valorCampo[j]);
+            }
+        }
+
+        //posicionado o seek apos o cabecalho
+        arquivo_PosCabecalho(arqBIN);
+
+        while (Ler_registro (arqBIN, &reg)){
+        if(reg.removido == REGISTRO_REMOVIDO)
+            continue;
+
+        if(registro_SatisfazCriterio(&reg, nomeCampo, valorCampo, quantCampos)){
+            Imprimir_registro(&reg);
+            
+            encontrado = 1;
+        }
+    }
+    printf("\n");
+    if(!encontrado){
+        printf("Registro inexistente.\n");
+    }
+    
+}
+
+    arquivo_Close(&arqBIN);
+    return 0;
 }
 
 //Funcao 4: Busca por RRN, recebe o RRN e calcula a posicao com RRN_posicao

@@ -24,6 +24,10 @@ void arquivo_inicio(FILE *arquivo){
     fseek(arquivo, 0, SEEK_SET); //volta para o inicio do arquivo
 }
 
+void arquivo_PosCabecalho(FILE *arquivo){
+    fseek(arquivo, TAMANHO_CABECALHO, SEEK_SET); //volta para o inicio do arquivo
+}
+
 void arquivo_posicSeek(FILE *arquivo, int rnn){
     int offset =  17 + rnn * 18;
     fseek(arquivo, offset, SEEK_SET);
