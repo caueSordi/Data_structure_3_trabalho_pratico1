@@ -1,3 +1,5 @@
+// Aluno 1: Caue Sordi Paulino - 14564520
+//Aluna 2: Luiza Rodrigues Cardoso - 14593332
 #include "funcoes.h"
 #include <stdio.h>
 #include <string.h>
