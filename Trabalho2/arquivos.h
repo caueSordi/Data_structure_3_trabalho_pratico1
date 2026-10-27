@@ -4,74 +4,51 @@
 #include <stdio.h>
 #include "registro.h"
 
-// definicao dos cabecalhos
-#define TAMANHO_STATUS  1
-#define TAMANHO_TOPO_PILHA 4
-#define TAMANHO_PROXIMO_RRN 4
-#define TAMANHO_NMRO_REGREM 4
-#define TAMANHO_NMRO_PARES 4
+// abertura, fechamento e posicionamento @
 
-#define TAMANHO_CABECALHO (TAMANHO_STATUS + TAMANHO_TOPO_PILHA + \
-                            TAMANHO_PROXIMO_RRN + TAMANHO_NMRO_REGREM + TAMANHO_NMRO_PARES)
+// abre o arquivo, retorna 1 se abriu e 0 se falhou @
+int       arquivo_Abertura(FILE **arq, const char *nome, const char *modo);
 
-#define STATUS_CONSISTENTE '1'
-#define STATUS_INCONSISTENTE '0'
+// fecha o arquivo e zera o ponteiro @
+void      arquivo_Close(FILE **arq);
 
+// vai para o byte 0 @
+void      arquivo_inicio(FILE *arq);
 
-// Abre um arquivo no modo especificado e armazena o ponteiro em *pontArquivo.
-void arquivo_Abertura(FILE **pontArquivo, char *nome, char *modo);
+// vai para logo depois do cabecalho @
+void      arquivo_PosCabecalho(FILE *arq);
 
-// Fecha o arquivo apontado por *arquivo.
-void arquivo_Close(FILE **arquivo);
+// vai para um byte offset @
+void      arquivo_Posiciona(FILE *arq, long long offset);
 
-//volta para o inicio do arquivo
-void arquivo_inicio(FILE *arquivo);
+// posicao atual do arquivo @
+long long arquivo_PosicaoAtual(FILE *arq);
 
-//posiciona o ponteiro logo apos o cabecalho
-void arquivo_PosCabecalho(FILE *arquivo);
-void arquivo_posicSeek(FILE *arquivo, int rnn);
+// escrita, um campo por chamada @
 
-// Escreve um campo do tipo char (1 byte) no arquivo, na posição atual do cursor.
-// Retorna 1 em sucesso, 0 em falha.
-int arquivo_EscreveChar(FILE *pontArquivo, char dado);
+void arquivo_EscreveChar(FILE *arq, char c);
+void arquivo_EscreveInt(FILE *arq, int valor);
+void arquivo_EscreveLongLong(FILE *arq, long long valor);
 
-// Escreve um campo do tipo int (4 bytes) no arquivo, na posição atual do cursor.
-// Retorna 1 em sucesso, 0 em falha.
-int arquivo_EscreveInt(FILE *pontArquivo, int dado);
+// escreve a string sem o '\0' e sem o '|' @
+void arquivo_EscreveString(FILE *arq, const char *s);
 
-// Lê um campo do tipo char (1 byte) do arquivo, na posição atual do cursor,
-// armazenando o valor lido em *dado.
-// Retorna 1 em sucesso, 0 em falha ou fim de arquivo (EOF).
-int arquivo_LeChar(FILE *pontArquivo, char *dado);
+// escreve n bytes '$' @
+void arquivo_EscreveLixo(FILE *arq, int n);
 
-// Lê um campo do tipo int (4 bytes) do arquivo, na posição atual do cursor,
-// armazenando o valor lido em *dado.
-// Retorna 1 em sucesso, 0 em falha ou fim de arquivo (EOF).
-int arquivo_LeInt(FILE *pontArquivo, int *dado);
+// leitura, retorna 1 se leu e 0 se deu erro ou fim de arquivo @
 
+int arquivo_LeChar(FILE *arq, char *c);
+int arquivo_LeInt(FILE *arq, int *valor);
+int arquivo_LeLongLong(FILE *arq, long long *valor);
 
-int csv_LeLinha(FILE *arqCSV, int *idPoPs, int *idPoPsConectado, int *velocidade, char *unidadeMedida);
+// le ate o '|' (consumido e nao copiado), trunca se passar de tamMax @
+int arquivo_LeStringAteDelim(FILE *arq, char *dest, int tamMax);
 
-void Inicializa_Cabecalho(Cabecalho *cab);
+// csv @
 
-int Ler_Cabecalho(FILE *arquivo, Cabecalho *cab);
+// le a proxima linha do CSV e preenche o registro, retorna 0 no fim do arquivo @
+// colunas assumidas: idPoPs,nomePoPs,nomePais,siglaPais, confira no seu .csv @
+int csv_LeLinha(FILE *arqCSV, Registro *reg);
 
-void Escrever_Cabecalho(FILE *arquivo, Cabecalho *cab);
-
-long RRN_posicao(int rrn);
-
-
-void ScanQuoteString(char *str);
-void BinarioNaTela(char *arquivo);
-
-
-
-
-
-
-
-
-
-
-
-#endif 
+#endif

@@ -4,79 +4,69 @@
 #include <stdlib.h>
 
 //Função 1: Leitura do CSV, Criação e Escrita no .bin
+// alterado: agora e a funcionalidade 8 (CREATE TABLE) do trabalho 2 
 int funcao_CREATE(char *nomeCSV, char *nomeBin){
     FILE *arqCSV, *arqBIN;
 
-    int idPoPs, idPoPsConectado, velocidade;
-    char unidade;
-    Registro *registro;
+    // apagado: idPoPs, idPoPsConectado, velocidade e unidade, o csv_LeLinha agora preenche o Registro direto 
+    Registro registro; // alterado: era o ponteiro Registro *registro, sem uso, agora recebe cada linha do CSV
     Cabecalho cabecalho;
 
     //manipulação do arquivo CSV e BIN
-    //abertura
     arquivo_Abertura(&arqCSV, nomeCSV, "rb");
-    arquivo_Abertura(&arqBIN, nomeBin, "wb");
-
-    //escrita do cabecalho 1
-    char status = '0';
-    int topoPilha = -1;
-    int proxRNN = 0;
-    int nroRegRem = 0;
-    int nroPares = 0;
-
-    arquivo_EscreveChar(arqBIN, status);
-    arquivo_EscreveInt(arqBIN, topoPilha);
-    arquivo_EscreveInt(arqBIN, proxRNN);
-    arquivo_EscreveInt(arqBIN, nroRegRem);
-    arquivo_EscreveInt(arqBIN, nroPares);
-
 
     //verificação de integridade
+
     if(arqCSV == NULL){
         printf("Falha no processamento do arquivo.\n");
         return 1;
 
     }   
-    
-    //leitura do arquivo
 
-    char removido = '0';
-    int encadeamento_pilha = -1;
-    int rnn = 0;
-
-    char linhaCabecalho[100];
-    fgets(linhaCabecalho, sizeof(linhaCabecalho), arqCSV);
-
-    while(csv_LeLinha(arqCSV, &idPoPs, &idPoPsConectado, &velocidade, &unidade)){
-        
-        //escrita no binario
-        arquivo_EscreveChar(arqBIN, removido);
-        arquivo_EscreveInt(arqBIN, encadeamento_pilha);
-        arquivo_EscreveInt(arqBIN, idPoPs);
-        arquivo_EscreveInt(arqBIN, idPoPsConectado);
-        arquivo_EscreveInt(arqBIN, velocidade);
-        arquivo_EscreveChar(arqBIN, unidade);
-
-        proxRNN++;
-        nroPares++;
+    arquivo_Abertura(&arqBIN, nomeBin, "wb");
+    // novo: verifica tambem se o bin abriu
+    if(arqBIN == NULL){
+        printf("Falha no processamento do arquivo.\n");
+        arquivo_Close(&arqCSV);
+        return 1;
     }
 
-    //reescrita do cabecalho
-    arquivo_inicio(arqBIN);
+    //escrita do cabecalho 1
+    Inicializa_cabecalho(&cabecalho); // alterado: o cabecalho usa a struct, tem 25 bytes, status 0 e lista vazia
+    Escrever_Cabecalho(arqBIN, &cabecalho);
 
-    status = '1';
-    arquivo_EscreveChar(arqBIN, status);
-    arquivo_EscreveInt(arqBIN, topoPilha);
-    arquivo_EscreveInt(arqBIN, proxRNN);
-    arquivo_EscreveInt(arqBIN, nroRegRem);
-    arquivo_EscreveInt(arqBIN, nroPares);
+    //leitura do arquivo
 
+    // apagado: removido, encadeamento_pilha e rnn, o Registro ja comeca com esses valores 
+
+    char linhaCabecalho[1024]; // alterado: era 100, uma linha maior viraria um registro 
+    fgets(linhaCabecalho, sizeof(linhaCabecalho), arqCSV);
+
+    while(csv_LeLinha(arqCSV, &registro)){ // alterado: preenche o Registro direto, sem as variaveis soltas 
+        
+        //escrita no binario
+        registro.tamanhoRegistro = calcula_tamanho_registro(&registro); // novo: registro de tamanho variavel 
+        Escrever_registro(arqBIN, &registro);
+        // apagado: as escritas de removido, encadeamento_pilha, idPoPs, idPoPsConectado, velocidade e unidade 
+
+        cabecalho.proxByteOffset += tamanho_total_registro(&registro); 
+        cabecalho.nroPoPs++; 
+    }
+
+  
+    cabecalho.status = STATUS_CONSISTENTE; 
+    Escrever_Cabecalho(arqBIN, &cabecalho); 
+    // apagado: arquivo_inicio e a escrita campo a campo do cabecalho antigo 
+
+    arquivo_Close(&arqCSV); 
     arquivo_Close(&arqBIN);
     BinarioNaTela(nomeBin);
+    return 0;
 }
 
 
 //Funcao 2:lista todos os registros (todos registros nao excluidos) 
+// alterado: agora e a funcionalidade 10 (SELECT) do Trabalho 2
 
 int funcao_READ_ALL(char *nomeBin){
    //USAR AS FUNCOES DO ARQUVIO.H
@@ -88,10 +78,11 @@ int funcao_READ_ALL(char *nomeBin){
         return 1;
     }
 
-    //lê cabecalho 
+
     Cabecalho cab ;
     if(!Ler_Cabecalho(arqBIN, &cab)){
         printf("Falha no processamento do arquivo.\n");
+        fclose(arqBIN); // novo: faltava fechar o arquivo
         return 1;
     }
 
@@ -103,12 +94,13 @@ int funcao_READ_ALL(char *nomeBin){
     }
 
     //Ler_Cabecalho já deixouo ponteiro para o inicio ro RRN 0, mas o fseek  deixa isso explicito e protege contra mudanças na leitura do cabecalho
+    // alterado: agora o ponteiro fica no primeiro registro, logo depois dos 25 bytes do cabecalho, nao ha mais RRN @
     arquivo_PosCabecalho(arqBIN);
 
     Registro reg;
     int encontrado = 0;
 
-    while (Ler_registro (arqBIN, &reg)){
+    while (Ler_registro (arqBIN, &reg)){ // alterado: Ler_registro agora le registro variavel e pula para o proximo 
         if(reg.removido == REGISTRO_REMOVIDO)
             continue;
 
@@ -119,376 +111,17 @@ int funcao_READ_ALL(char *nomeBin){
     // Fim da leitura dos registros
     
     if (!encontrado) {
-        printf("Registro inexistente\n");
+        printf("Registro inexistente\n"); 
     }
 
     fclose(arqBIN);
     return 0;
 }
 
-//funcão 3: busca filtrada sequencial
+// pendente: funcao_READVALUE (SELECT WHERE, 11) fica para o passo 4, vai usar o indice quando o criterio for idPoPs
 
-int funcao_READVALUE(int quantBusca, char *nomeBin){
-    int quantCampos =0;
-    char aux[20];
-    Registro reg;
-   
+// apagado: funcao_SELECT_RRN, no TP2 nao existe RRN, a busca por byte offset vai ficar dentro do SELECT WHERE
 
+// pendente: funcao_DELETE (12), funcao_INSERT (13) e funcao_UPDATE (14) ficam para os passos 5 e 6, vao ser reescritas com Worst Fit e indice 
 
-    //abertura do arquivo para leitura
-    FILE *arqBIN;
-    arquivo_Abertura(&arqBIN, nomeBin, "rb");
-
-    
-    for(int i=0; i<quantBusca; i++)
-    {
-        int encontrado = 0;
-        scanf("%d", &quantCampos);
-
-        char nomeCampo[quantCampos][20];
-        char valorCampo[quantCampos][20];
-
-        //lendo os dados de pesquisa
-        for(int j =0; j<quantCampos; j++){
-            scanf("%s", nomeCampo[j]);
-            if(!strcmp(nomeCampo[j], "unidadeMedida")){
-                ScanQuoteString(valorCampo[j]);
-            }
-            else{
-                scanf("%s", valorCampo[j]);
-            }
-        }
-
-        //posicionado o seek apos o cabecalho
-        arquivo_PosCabecalho(arqBIN);
-
-        while (Ler_registro (arqBIN, &reg)){
-        if(reg.removido == REGISTRO_REMOVIDO)
-            continue;
-
-        if(registro_SatisfazCriterio(&reg, nomeCampo, valorCampo, quantCampos)){
-            Imprimir_registro(&reg);
-            
-            encontrado = 1;
-        }
-    }
-    printf("\n");
-    if(!encontrado){
-        printf("Registro inexistente.\n");
-    }
-    
-}
-
-    arquivo_Close(&arqBIN);
-    return 0;
-}
-
-//Funcao 4: Busca por RRN, recebe o RRN e calcula a posicao com RRN_posicao
-int funcao_SELECT_RRN(char *nomeBin, int RRN){
-    //abre arquivo
-    FILE *arqBIN = fopen(nomeBin, "rb");
-    
-    // VERIFICAÇÃO ADICIONADA AQUI:
-    if (arqBIN == NULL) {
-        printf("Falha no processamento do arquivo.\n");
-        return 1;
-    }
-
-    Cabecalho cab;
-    if(!Ler_Cabecalho(arqBIN, &cab) || cab.status == STATUS_INCONSISTENTE){
-        printf("Falha no processamento do arquivo.\n");
-        fclose(arqBIN);
-        return 1;
-    }
-
-    if(RRN < 0 || RRN >= cab.proxRNN){
-        printf("Registro inexistente.\n");
-        fclose(arqBIN);
-        return 0;
-    }
-
-    Registro reg;
-    if(!Ler_registro_rrn(arqBIN, RRN, &reg)){
-        printf("Falha no processamento do arquivo.\n");
-        fclose(arqBIN);
-        return 1;
-    }
-
-    if(reg.removido == REGISTRO_REMOVIDO){
-        printf("Registro inexistente.\n");
-        fclose(arqBIN);
-        return 0;
-    }
-
-    Imprimir_registro(&reg);
-    fclose(arqBIN);
-    return 0;
-}
-//Funcao 5: remocao logica, percorre arquivo e marca REGISTRO_REMOVIDO
-int funcao_DELETE(char *nomeBin){
-    int n;
-    scanf("%d", &n);
-
-    FILE *arqBIN = fopen(nomeBin, "rb+");
-    if (arqBIN == NULL) {
-        printf("Falha no processamento do arquivo.\n");
-        return 1;
-    }
-
-    Cabecalho cab;
-    if(!Ler_Cabecalho(arqBIN, &cab) || cab.status == STATUS_INCONSISTENTE){
-        printf("Falha no processamento do arquivo.\n");
-        fclose(arqBIN);
-        return 1;
-    }
-
-    //marca arquivo como inconsistente durante a modificacao
-    cab.status = '0';
-    arquivo_PosCabecalho(arqBIN);
-    fseek(arqBIN, 0, SEEK_SET);
-    Escrever_Cabecalho(arqBIN, &cab);
-
-    //Leitura das buscas
-    for (int i = 0; i < n; i++) {
-        int nCriterios;
-        scanf("%d", &nCriterios);
-
-        char nomeCampo[5][20];
-        char valorCampo[5][50];
-
-        // Lendo os criterios desta busca
-        for (int j = 0; j < nCriterios; j++) {
-            scanf("%s", nomeCampo[j]);
-            if (strcmp(nomeCampo[j], "unidadeMedida") == 0)
-                ScanQuoteString(valorCampo[j]);
-            else
-                scanf("%s", valorCampo[j]);
-        }
-        
-        // --- LOOP SEQUENCIAL (Bypassa qualquer bug do Ler_registro_rrn) ---
-        arquivo_PosCabecalho(arqBIN); 
-        int rrn = 0;
-        
-        while (rrn < cab.proxRNN) {
-            long pos_atual = ftell(arqBIN); // salva a posicao exata do disco
-            Registro reg;
-            
-            // Ler_registro normal (sequencial) funciona perfeitamente!
-            if (!Ler_registro(arqBIN, &reg))
-                break;
-            
-            if (reg.removido == REGISTRO_REMOVIDO) {
-                rrn++;
-                continue;
-            }
-
-            // Checagem blindada
-            int match = 1;
-            for (int j = 0; j < nCriterios; j++) {
-                if (strcmp(nomeCampo[j], "idPoPs") == 0) {
-                    if (reg.IDPoPs != atoi(valorCampo[j])) match = 0;
-                } 
-                else if (strcmp(nomeCampo[j], "idPoPsConectado") == 0) {
-                    if (reg.IDPoPs_Conectado != atoi(valorCampo[j])) match = 0;
-                } 
-                else if (strcmp(nomeCampo[j], "velocidade") == 0) {
-                    if (reg.velocidade != atoi(valorCampo[j])) match = 0;
-                } 
-                else if (strcmp(nomeCampo[j], "unidadeMedida") == 0) {
-                    if (reg.unidade_medida != valorCampo[j][0]) match = 0;
-                }
-            }
-
-            if (!match){
-                rrn++;
-                continue;
-            }
-            
-            // --- REMOCAO ---
-            reg.removido = REGISTRO_REMOVIDO;
-            reg.encadeamento_pilha = cab.topo_Pilha;
-            cab.topo_Pilha = rrn;
-            cab.nroRegRem++;
-            // nroPares PERMANECE INTACTO E OS DADOS TAMBEM!
-
-            // Retorna o ponteiro para reescrever SOMENTE este registro
-            fseek(arqBIN, pos_atual, SEEK_SET);
-            Escrever_registro(arqBIN, &reg);
-            
-            rrn++;
-        }
-    }
-
-    // finalizou remocoes: arquivo volta a ficar consistente
-    cab.status = '1';
-    fseek(arqBIN, 0, SEEK_SET);
-    Escrever_Cabecalho(arqBIN, &cab);
-    
-    fclose(arqBIN);
-    BinarioNaTela(nomeBin);
-    return 0;
-}
-//Funcao 6: insercao com reaproveitamento de espacos removidos
-//(pilha) ou no final do arquivo, quando a pilha esta vazia
-int funcao_INSERT(char *nomeBin, int quantBusca){
-    FILE *arqBin;
-    /* "rb+" preserva o conteudo existente; "wb" apagaria o
-     * arquivo inteiro */
-    arquivo_Abertura(&arqBin, nomeBin, "rb+");
-
-    Cabecalho cab;
-    if(!Ler_Cabecalho(arqBin, &cab) || cab.status == STATUS_INCONSISTENTE){
-        printf("Falha no processamento do arquivo.\n");
-        fclose(arqBin);
-        return 1;
-    }
-
-    for(int i = 0; i < quantBusca; i++){
-        char strId[32], strConect[32], strVelo[32], strUnid[32];
-
-        /* le como texto pra poder tratar "NULO" nos campos
-         * numericos tambem, igual csv_LeLinha ja faz na [1] */
-        scanf("%s %s %s", strId, strConect, strVelo);
-        ScanQuoteString(strUnid);
-
-        Registro reg;
-        reg.removido = REGISTRO_NAO_REMOVIDO;
-        reg.encadeamento_pilha = -1;
-
-        reg.IDPoPs           = (strcmp(strId, "NULO") == 0)     ? VALOR_NULO_INT  : atoi(strId);
-        reg.IDPoPs_Conectado = (strcmp(strConect, "NULO") == 0) ? VALOR_NULO_INT  : atoi(strConect);
-        reg.velocidade       = (strcmp(strVelo, "NULO") == 0)   ? VALOR_NULO_INT  : atoi(strVelo);
-        reg.unidade_medida   = (strUnid[0] == '\0')             ? VALOR_NULO_CHAR : strUnid[0];
-
-        int rrnDestino;
-
-        if (cab.topo_Pilha != -1) {
-            /* tem espaco removido: reaproveita o TOPO da pilha */
-            rrnDestino = cab.topo_Pilha;
-
-            Registro removidoAntigo;
-            Ler_registro_rrn(arqBin, rrnDestino, &removidoAntigo);
-            cab.topo_Pilha = removidoAntigo.encadeamento_pilha; /* desempilha */
-
-            cab.nroRegRem--;
-        } else {
-            /* pilha vazia: escreve no final do arquivo */
-            rrnDestino = cab.proxRNN;
-            cab.proxRNN++;
-            //cab.nroPares++;
-        }
-
-        arquivo_posicSeek(arqBin, rrnDestino);
-        Escrever_registro(arqBin, &reg);
-
-        // cab.nroPares++;
-    }
-
-    fseek(arqBin, 0, SEEK_SET);
-    Escrever_Cabecalho(arqBin, &cab);
-
-    fclose(arqBin);
-    BinarioNaTela(nomeBin);
-
-    return 0;
-}
-// Funcao 7: Atualiza registros baseados em criterios de busca
-int funcao_UPDATE(char *nomeBin, int quantBusca) {
-    FILE *arqBIN = fopen(nomeBin, "rb+");
-    if (arqBIN == NULL) {
-        printf("Falha no processamento do arquivo.\n");
-        return 1;
-    }
-
-    Cabecalho cab;
-    if (!Ler_Cabecalho(arqBIN, &cab) || cab.status == STATUS_INCONSISTENTE) {
-        printf("Falha no processamento do arquivo.\n");
-        fclose(arqBIN);
-        return 1;
-    }
-
-    cab.status = '0';
-    fseek(arqBIN, 0, SEEK_SET);
-    Escrever_Cabecalho(arqBIN, &cab);
-
-    for (int i = 0; i < quantBusca; i++) {
-        int nCriteriosBusca;
-        scanf("%d", &nCriteriosBusca);
-
-        char buscaCampo[5][20];
-        char buscaValor[5][20];
-
-        // Lendo criterios de BUSCA
-        for (int j = 0; j < nCriteriosBusca; j++) {
-            scanf("%s", buscaCampo[j]);
-            if (strcmp(buscaCampo[j], "unidadeMedida") == 0)
-                ScanQuoteString(buscaValor[j]);
-            else
-                scanf("%s", buscaValor[j]);
-        }
-
-        int nCriteriosUpdate;
-        scanf("%d", &nCriteriosUpdate);
-
-        char atualizaCampo[5][20];
-        char atualizaValor[5][20];
-
-        // Lendo criterios de ATUALIZACAO
-        for (int j = 0; j < nCriteriosUpdate; j++) {
-            scanf("%s", atualizaCampo[j]);
-            if (strcmp(atualizaCampo[j], "unidadeMedida") == 0)
-                ScanQuoteString(atualizaValor[j]);
-            else
-                scanf("%s", atualizaValor[j]);
-        }
-
-        // Busca sequencial (igual fizemos no DELETE)
-        arquivo_PosCabecalho(arqBIN);
-        int rrn = 0;
-
-        while (rrn < cab.proxRNN) {
-            long pos_atual = ftell(arqBIN);
-            Registro reg;
-
-            if (!Ler_registro(arqBIN, &reg)) break;
-
-            if (reg.removido == REGISTRO_REMOVIDO) {
-                rrn++;
-                continue;
-            }
-
-            // REAPROVEITA SUA FUNCAO DE BUSCA (Funcao 3)
-            if (registro_SatisfazCriterio(&reg, buscaCampo, buscaValor, nCriteriosBusca)) {
-                
-                // ATUALIZANDO OS CAMPOS
-                for (int k = 0; k < nCriteriosUpdate; k++) {
-                    if (strcmp(atualizaCampo[k], "idPoPs") == 0) {
-                        reg.IDPoPs = (strcmp(atualizaValor[k], "NULO") == 0) ? VALOR_NULO_INT : atoi(atualizaValor[k]);
-                    } 
-                    else if (strcmp(atualizaCampo[k], "idPoPsConectado") == 0) {
-                        reg.IDPoPs_Conectado = (strcmp(atualizaValor[k], "NULO") == 0) ? VALOR_NULO_INT : atoi(atualizaValor[k]);
-                    } 
-                    else if (strcmp(atualizaCampo[k], "velocidade") == 0) {
-                        reg.velocidade = (strcmp(atualizaValor[k], "NULO") == 0) ? VALOR_NULO_INT : atoi(atualizaValor[k]);
-                    } 
-                    else if (strcmp(atualizaCampo[k], "unidadeMedida") == 0) {
-                        reg.unidade_medida = (atualizaValor[k][0] == '\0') ? VALOR_NULO_CHAR : atualizaValor[k][0];
-                    }
-                }
-
-                // Volta e sobrescreve o registro atualizado
-                fseek(arqBIN, pos_atual, SEEK_SET);
-                Escrever_registro(arqBIN, &reg);
-            }
-            rrn++;
-        }
-    }
-
-    cab.status = '1';
-    fseek(arqBIN, 0, SEEK_SET);
-    Escrever_Cabecalho(arqBIN, &cab);
-    
-    fclose(arqBIN);
-    BinarioNaTela(nomeBin);
-    return 0;
-}
+// pendente: funcao_CREATE_INDEX (9) e a funcionalidade nova do TP2, fica para o passo 4 

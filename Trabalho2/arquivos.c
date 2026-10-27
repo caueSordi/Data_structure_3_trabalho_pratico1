@@ -1,241 +1,167 @@
 #include "arquivos.h"
-#include <ctype.h>
-#include <stdio.h>
-#include <stdlib.h>
 #include <string.h>
+#include <stdlib.h>
 
-//abertura de arquivo sob um determinado modo e armazena o ponteiro
-void arquivo_Abertura(FILE **pontArquivo, char *nome, char *modo){
-    *pontArquivo = fopen(nome, modo);
-    if(*pontArquivo == NULL){
-        printf("Falha no  processamento do arquivo. \n");
+// o layout do arquivo exige estes tamanhos @
+_Static_assert(sizeof(long long) == 8, "long long precisa ter 8 bytes");
+_Static_assert(sizeof(int) == 4, "int precisa ter 4 bytes");
+
+#define TAM_LINHA_CSV 1024
+#define NUM_COLUNAS_CSV 4
+
+// abertura, fechamento e posicionamento @
+
+int arquivo_Abertura(FILE **arq, const char *nome, const char *modo)
+{
+    *arq = fopen(nome, modo);
+    return *arq != NULL;
+}
+
+void arquivo_Close(FILE **arq)
+{
+    if (*arq != NULL) {
+        fclose(*arq);
+        *arq = NULL;
     }
 }
 
-//fecha o arquivo
-void arquivo_Close(FILE **arquivo){
-    int flag =  fclose(*arquivo);
-    if(flag != 0){
-        printf("Falha no  processamento do arquivo. \n");
-    }
+void arquivo_inicio(FILE *arq)
+{
+    fseek(arq, 0, SEEK_SET);
 }
 
-void arquivo_inicio(FILE *arquivo){
-    fseek(arquivo, 0, SEEK_SET); //volta para o inicio do arquivo
+void arquivo_PosCabecalho(FILE *arq)
+{
+    fseek(arq, TAM_CABECALHO, SEEK_SET);
 }
 
-void arquivo_PosCabecalho(FILE *arquivo){
-    fseek(arquivo, TAMANHO_CABECALHO, SEEK_SET); //volta para o inicio do arquivo
+void arquivo_Posiciona(FILE *arq, long long offset)
+{
+    fseek(arq, (long)offset, SEEK_SET);
 }
 
-void arquivo_posicSeek(FILE *arquivo, int rnn){
-    int offset =  17 + rnn * 18;
-    fseek(arquivo, offset, SEEK_SET);
+long long arquivo_PosicaoAtual(FILE *arq)
+{
+    return (long long)ftell(arq);
 }
 
-//Escreve um conjunto de dados 
-int arquivo_EscreveChar(FILE *pontArquivo, char dado){
-   if( fwrite(&dado, sizeof(dado), 1,  pontArquivo) != 1){
-        printf("Falha no processamento do arquivo.\n");
-        return 0;
-    }
-    return 1;
+// escrita @
+
+void arquivo_EscreveChar(FILE *arq, char c)
+{
+    fwrite(&c, sizeof(char), 1, arq);
 }
 
-int arquivo_EscreveInt(FILE *pontArquivo, int dado){
-   if( fwrite(&dado, sizeof(dado), 1,  pontArquivo) != 1){
-        printf("Falha no processamento do arquivo.\n");
-        return 0;
-    }
-    return 1;
+void arquivo_EscreveInt(FILE *arq, int valor)
+{
+    fwrite(&valor, sizeof(int), 1, arq);
 }
 
-int arquivo_LeChar(FILE *pontArquivo, char *dado ){
-    if(fread(&dado, sizeof(*dado), 1, pontArquivo) != 1){
-        return 0; // EOF ou erro 
-    }
-    return 1;
+void arquivo_EscreveLongLong(FILE *arq, long long valor)
+{
+    fwrite(&valor, sizeof(long long), 1, arq);
 }
 
-//leitura do arquivo csv blindada contra espaços vazios (trim)
-int csv_LeLinha(FILE *arqCSV, int *idPoPs, int *idPoPsConectado, int *velocidade, char *unidadeMedida){
-    char linha[500];
-    if(fgets(linha, sizeof(linha), arqCSV) == NULL){
-        return 0; // EOF
-    }
+void arquivo_EscreveString(FILE *arq, const char *s)
+{
+    size_t n = strlen(s);
+    if (n > 0)
+        fwrite(s, sizeof(char), n, arq);
+}
 
-    // Remove a quebra de linha do final
-    linha[strcspn(linha, "\r\n")] = '\0';
+void arquivo_EscreveLixo(FILE *arq, int n)
+{
+    for (int i = 0; i < n; i++)
+        arquivo_EscreveChar(arq, VALOR_NULO_CHAR);
+}
 
-    char buffer[50];
-    int pos = 0, col = 0;
-    char *ptr = linha;
+// leitura @
 
-    *idPoPs = -1;
-    *idPoPsConectado = -1;
-    *velocidade = -1;
-    *unidadeMedida = '$';
+int arquivo_LeChar(FILE *arq, char *c)
+{
+    return fread(c, sizeof(char), 1, arq) == 1;
+}
 
-    while (*ptr != '\0' && col < 4) {
-        pos = 0;
-        // Ignora espaços em branco antes do valor
-        while (*ptr == ' ' || *ptr == '\t') ptr++;
-        
-        // Lê os caracteres até achar a vírgula
-        while (*ptr != ',' && *ptr != '\0') {
-            buffer[pos++] = *ptr++;
+int arquivo_LeInt(FILE *arq, int *valor)
+{
+    return fread(valor, sizeof(int), 1, arq) == 1;
+}
+
+int arquivo_LeLongLong(FILE *arq, long long *valor)
+{
+    return fread(valor, sizeof(long long), 1, arq) == 1;
+}
+
+int arquivo_LeStringAteDelim(FILE *arq, char *dest, int tamMax)
+{
+    int n = 0;
+    int c;
+
+    while ((c = fgetc(arq)) != EOF) {
+        if (c == DELIMITADOR) {
+            dest[n] = '\0';
+            return 1;
         }
-        
-        // Ignora espaços em branco no final do valor (trim)
-        while (pos > 0 && (buffer[pos-1] == ' ' || buffer[pos-1] == '\t')) pos--;
-        buffer[pos] = '\0';
+        // o que passar do limite e descartado @
+        if (n < tamMax - 1)
+            dest[n++] = (char)c;
+    }
 
-        if (pos > 0) {
-            if (col == 0) *idPoPs = atoi(buffer);
-            else if (col == 1) *idPoPsConectado = atoi(buffer);
-            else if (col == 2) *velocidade = atoi(buffer);
-            else if (col == 3) *unidadeMedida = buffer[0];
+    // acabou o arquivo antes do '|' @
+    dest[n] = '\0';
+    return 0;
+}
+
+// csv @
+
+// copia a string sem estourar o tamanho do destino @
+static void copia_string(char *destino, const char *origem, int tamMax)
+{
+    strncpy(destino, origem, tamMax - 1);
+    destino[tamMax - 1] = '\0';
+}
+
+int csv_LeLinha(FILE *arqCSV, Registro *reg)
+{
+    char linha[TAM_LINHA_CSV];
+
+    // pula linhas em branco @
+    do {
+        if (fgets(linha, sizeof(linha), arqCSV) == NULL)
+            return 0;
+        linha[strcspn(linha, "\r\n")] = '\0';
+    } while (linha[0] == '\0');
+
+    Inicializa_registro(reg);
+
+    // separa as colunas sem usar strtok, para nao perder as vazias @
+    char *campos[NUM_COLUNAS_CSV];
+    int n = 0;
+    char *p = linha;
+
+    campos[n++] = p;
+    while (*p != '\0' && n < NUM_COLUNAS_CSV) {
+        if (*p == ',') {
+            *p = '\0';
+            campos[n++] = p + 1;
         }
-
-        if (*ptr == ',') ptr++; 
-        col++;
+        p++;
     }
+
+    // colunas que faltaram apontam para o fim da linha, ou seja, vazias @
+    for (int i = n; i < NUM_COLUNAS_CSV; i++)
+        campos[i] = p;
+
+    // ordem das colunas: idPoPs, nomePoPs, nomePais, siglaPais @
+    reg->idPoPs = (campos[0][0] == '\0') ? VALOR_NULO_INT : atoi(campos[0]);
+    copia_string(reg->nomePoPs, campos[1], TAM_MAX_STRING);
+    copia_string(reg->nomePais, campos[2], TAM_MAX_STRING);
+
+    // sigla vazia continua "$$" (nulo) @
+    if (campos[3][0] != '\0') {
+        reg->siglaPais[0] = campos[3][0];
+        reg->siglaPais[1] = (campos[3][1] != '\0') ? campos[3][1] : VALOR_NULO_CHAR;
+    }
+
     return 1;
-}
-void Inicializa_Cabecalho(Cabecalho *cab)
-{
-    cab->status = STATUS_INCONSISTENTE;
-    cab->proxRNN = 0;
-    cab->topo_Pilha = -1;
-    cab->nroRegRem = 0;
-    cab->nroPares = 0;
-
-}
-
-int Ler_Cabecalho(FILE *arquivo, Cabecalho *cab)
-{
-    if (fread(&cab->status, sizeof(char), 1, arquivo) != 1)
-        return 0;
-   
-    if (fread(&cab->topo_Pilha, sizeof(int), 1, arquivo) != 1)
-        return 0;
-     if (fread(&cab->proxRNN, sizeof(int), 1, arquivo) != 1)
-        return 0;
-    if (fread(&cab->nroRegRem, sizeof(int), 1, arquivo) != 1)
-        return 0;
-    if (fread(&cab->nroPares, sizeof(int), 1, arquivo) != 1)
-        return 0;
-    return 1;
-}
-
-void Escrever_Cabecalho(FILE *arquivo, Cabecalho *cab)
-{
-    fwrite(&cab->status, sizeof(char), 1, arquivo);
-    fwrite(&cab->topo_Pilha, sizeof(int), 1, arquivo);
-    fwrite(&cab->proxRNN, sizeof(int),1, arquivo);
-    fwrite(&cab->nroRegRem, sizeof(int), 1, arquivo);
-    fwrite(&cab->nroPares, sizeof(int), 1, arquivo);
-}
-
-
-//verificar depois, TAMANHO_REGISTO existe?
-long RRN_posicao(int rrn)
-{
-    return (TAMANHO_CABECALHO + (long)rrn * TAMANHO_REGISTRO);
-    
-    
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-////FUNCOES FORNECIDAS
-
-
-/*
- * Você não precisa entender o código dessa função.
- *
- * Use essa função para comparação no run.codes.
- * Lembre-se de ter fechado (fclose) o arquivo anteriormente.
- *
- * Ela vai abrir de novo para leitura e depois fechar
- * (você não vai perder pontos por isso se usar ela).
- */
-void BinarioNaTela(char *arquivo) {
-    FILE *fs;
-    if (arquivo == NULL || !(fs = fopen(arquivo, "rb"))) {
-        fprintf(stderr,
-                "ERRO AO ESCREVER O BINARIO NA TELA (função binarioNaTela): "
-                "não foi possível abrir o arquivo que me passou para leitura. "
-                "Ele existe e você tá passando o nome certo? Você lembrou de "
-                "fechar ele com fclose depois de usar?\n");
-        return;
-    }
-
-    fseek(fs, 0, SEEK_END);
-    size_t fl = ftell(fs);
-
-    fseek(fs, 0, SEEK_SET);
-    unsigned char *mb = (unsigned char *)malloc(fl);
-    fread(mb, 1, fl, fs);
-
-    unsigned long cs = 0;
-    for (unsigned long i = 0; i < fl; i++) {
-        cs += (unsigned long)mb[i];
-    }
-
-    printf("%lf\n", (cs / (double)100));
-
-    free(mb);
-    fclose(fs);
-}
-
-/*
- *	Use essa função para ler um campo string delimitado entre aspas (").
- *	Chame ela na hora que for ler tal campo. Por exemplo:
- *
- *	A entrada está da seguinte forma:
- *		nomeDoCampo "MARIA DA SILVA"
- *
- *	Para ler isso para as strings já alocadas str1 e str2 do seu programa,
- * você faz: scanf("%s", str1); // Vai salvar nomeDoCampo em str1
- *		scan_quote_string(str2); // Vai salvar MARIA DA SILVA em str2
- * (sem as aspas)
- *
- */
-void ScanQuoteString(char *str) {
-    char R;
-
-    while ((R = getchar()) != EOF && isspace(R))
-        ; // ignorar espaços, \r, \n...
-
-    if (R == 'N' || R == 'n') { // campo NULO
-        getchar();
-        getchar();
-        getchar();       // ignorar o "ULO" de NULO.
-        strcpy(str, ""); // copia string vazia
-    } else if (R == '\"') {
-        if (scanf("%[^\"]", str) != 1) { // ler até o fechamento das aspas
-            strcpy(str, "");
-        }
-        getchar();         // ignorar aspas fechando
-    } else if (R != EOF) { // vc tá tentando ler uma string que não tá entre
-                           // aspas! Fazer leitura normal %s então, pois deve
-                           // ser algum inteiro ou algo assim...
-        str[0] = R;
-        scanf("%s", &str[1]);
-    } else { // EOF
-        strcpy(str, "");
-    }
 }

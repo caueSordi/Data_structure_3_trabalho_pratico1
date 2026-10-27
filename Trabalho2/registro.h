@@ -1,70 +1,83 @@
 #ifndef REGISTRO_H
 #define REGISTRO_H
- 
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
 
-#define TAMANHO_REMOVIDO    1
-#define TAMANHO_ENCADEAMENTO 4
-#define TAMANHO_ID_POPS     4
-#define TAMANHO_ID_POPS_CONECTADO   4
-#define TAMANHO_VELOCIDADE 4
-#define TAMANHO_UNIDADE_MEDIDA 1
-
-#define TAMANHO_REGISTRO (TAMANHO_REMOVIDO + TAMANHO_ENCADEAMENTO + TAMANHO_ID_POPS + TAMANHO_ID_POPS_CONECTADO + TAMANHO_VELOCIDADE + TAMANHO_UNIDADE_MEDIDA)
+#define STATUS_INCONSISTENTE '0'
+#define STATUS_CONSISTENTE '1'
 
 #define REGISTRO_NAO_REMOVIDO '0'
 #define REGISTRO_REMOVIDO '1'
 
 #define VALOR_NULO_INT -1
-
 #define VALOR_NULO_CHAR '$'
+
+#define LISTA_VAZIA -1LL
+#define DELIMITADOR '|'
+
+#define TAM_CABECALHO 25
+#define BYTES_ANTES_TAMANHO 5 // tamanho do registro removido + tamanhoRegistro
+#define BYTES_FIXOS_APOS_TAMANHO 14 // encadeamento(8) + idPoPs(4) + siglaPais(2)
+// atencao: assume que tamanhoRegistro nao conta os 5 primeiros bytes
+
+#define TAM_SIGLA 2
+#define TAM_MAX_STRING 256
+#define TAM_NOME_CAMPO 20
 
 
 //definindo a struct cabecalho
-//POssui 17 bytes, status(1), topo(4), prox(4), nroRem(4), nroPares(4)
+// 25 bytes: status(1), topoLista(8), proxByteOffset(8), nroRegRem(4), nroPoPs(4) 
 typedef struct  {
-    char status; 
-    int topo_Pilha;
-    int proxRNN;
-    int nroRegRem;
-    int nroPares;
+char status; 
+long long topoLista; // byte offset do primeiro removido, -1 se nao ha 
+long long proxByteOffset;
+
+int nroRegRem;
+int nroPoPs;
 }Cabecalho;
 
 
-//struct do registro
 
 typedef struct 
 {
-    char removido;
-    char unidade_medida;
-    int velocidade;
-    int encadeamento_pilha;
-    int IDPoPs;
-    int IDPoPs_Conectado;
+char removido;
+int tamanhoRegistro;
+long long encadeamento; // byte offset do proximo removido da lista
+int idPoPs;
+char siglaPais[TAM_SIGLA + 1]; // 2 chars + '\0' em memoria, nulo = "$$" 
+char nomePoPs[TAM_MAX_STRING]; // vazio = nulo 
+char nomePais[TAM_MAX_STRING]; // vazio = nulo
 
 } Registro ; 
 
-void inicializar_registro(Registro *reg);
- //coloca o registro em um estado vazio conhecido antes de inserir dados
+void Inicializa_registro(Registro *reg);
+//coloca o registro em um estado vazio conhecido antes de inserir dados
 
 int Ler_registro(FILE *arquivo, Registro *reg); 
+// le registro ativo ou removido e deixa o ponteiro no proximo registro
 
-int Ler_registro_rrn(FILE *arquivo, int rrn, Registro *reg);
+int Ler_registro_offset(FILE *arquivo, long long offset, Registro *reg);
 
-//le um registro do arquivo, por campo e retorna 1 se leu ou 0 se deu erro ou EOF
+//le um registro do arquivo, por campo e retorna 1 se leu ou 0 se deu erro
 
-void Escrever_registro(FILE *arquivo, Registro *reg);
+// completa com '$' ate tamanhoRegistro, retorna 0 se os dados nao couberem
+int Escrever_registro(FILE *arquivo, const Registro *reg);
 //escreve um registro no arquivo com todos os campos em ordem
 
 void Imprimir_registro(const Registro *reg);
 
-int registro_SatisfazCriterio(Registro *reg, char nomeCampo[][20], char valorCampo[][20], int quantCampos);
+// valorCampo precisa ter TAM_MAX_STRING colunas, por causa dos campos string
+int registro_SatisfazCriterio(const Registro *reg, char nomeCampo[][TAM_NOME_CAMPO], char valorCampo[][TAM_MAX_STRING], int quantCampos);
 
-int campoIntCMP(char *valorTexto);
+int campoIntCMP(const char *valorTexto);
 
-char campoCharCMP(char *valorTexto);
+void Inicializa_cabecalho(Cabecalho *cab);
+int Ler_Cabecalho(FILE *arquivo, Cabecalho *cab);
+void Escrever_Cabecalho(FILE *arquivo, const Cabecalho *cab);
+
+int calcula_tamanho_registro(const Registro *reg);
+int tamanho_total_registro(const Registro *reg);
 
 
 #endif
