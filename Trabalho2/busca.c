@@ -67,6 +67,31 @@ offset = arquivo_PosicaoAtual(arquivo);
 return total;
 }
 
+
+// novo: compara indices para o qsort
+int compara_indice(const void *a, const void *b) {
+    RegistroIndice *ri1 = (RegistroIndice *)a;
+    RegistroIndice *ri2 = (RegistroIndice *)b;
+    if (ri1->idPoPs < ri2->idPoPs) return -1;
+    if (ri1->idPoPs > ri2->idPoPs) return 1;
+    return 0;
+}
+
+//busca binaria no vetor de indices
+long long busca_binaria_indice(RegistroIndice *indices, int qtd, int idBuscado) {
+    int esq = 0, dir = qtd - 1;
+    while (esq <= dir) {
+        int meio = esq + (dir - esq) / 2;
+        if (indices[meio].idPoPs == idBuscado) {
+            return indices[meio].byteOffset;
+        } else if (indices[meio].idPoPs < idBuscado) {
+            esq = meio + 1;
+        } else {
+            dir = meio - 1;
+        }
+    }
+    return -1; // caso de falha
+}
 /* removido:
 os campos idPoPsConectado, velocidade e unidadeMedida do campoBate
 a variavel rrn do Buscar_sequencial pq nao usamos mais RRN*/
