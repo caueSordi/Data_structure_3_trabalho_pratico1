@@ -3,6 +3,8 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include "registro.h"
+#include "arquivo.h"
 
 #define STATUS_INCONSISTENTE '0'
 #define STATUS_CONSISTENTE '1'
@@ -29,26 +31,24 @@
 //definindo a struct cabecalho
 // 25 bytes: status(1), topoLista(8), proxByteOffset(8), nroRegRem(4), nroPoPs(4) 
 typedef struct  {
-char status; 
-long long topoLista; // byte offset do primeiro removido, -1 se nao ha 
-long long proxByteOffset;
+    char status; 
+    long long topoLista; // byte offset do primeiro removido, -1 se nao ha 
+    long long proxByteOffset;
 
-int nroRegRem;
-int nroPoPs;
+    int nroRegRem;
+    int nroPoPs;
 }Cabecalho;
 
 
 
-typedef struct 
-{
-char removido;
-int tamanhoRegistro;
-long long encadeamento; // byte offset do proximo removido da lista
-int idPoPs;
-char siglaPais[TAM_SIGLA + 1]; // 2 chars + '\0' em memoria, nulo = "$$" 
-char nomePoPs[TAM_MAX_STRING]; // vazio = nulo 
-char nomePais[TAM_MAX_STRING]; // vazio = nulo
-
+typedef struct Registro {
+    char removido;
+    int tamanhoRegistro;
+    long long encadeamento; // byte offset do proximo removido da lista
+    int idPoPs;
+    char siglaPais[TAM_SIGLA + 1]; // 2 chars + '\0' em memoria, nulo = "$$" 
+    char nomePoPs[TAM_MAX_STRING]; // vazio = nulo 
+    char nomePais[TAM_MAX_STRING]; // vazio = nulo
 } Registro ; 
 
 void Inicializa_registro(Registro *reg);

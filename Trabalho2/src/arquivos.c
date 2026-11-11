@@ -1,6 +1,8 @@
-#include "arquivos.h"
 #include <string.h>
 #include <stdlib.h>
+#include "registro.h"
+#include "arquivo.h"
+
 
 // o layout do arquivo exige estes tamanhos @
 _Static_assert(sizeof(long long) == 8, "long long precisa ter 8 bytes");
@@ -32,7 +34,7 @@ void arquivo_inicio(FILE *arq)
 
 void arquivo_PosCabecalho(FILE *arq)
 {
-    fseek(arq, TAM_CABECALHO, SEEK_SET);
+    fseek(arq, TAMANHO_CABECALHO, SEEK_SET);
 }
 
 void arquivo_Posiciona(FILE *arq, long long offset)
@@ -96,9 +98,9 @@ int arquivo_LeStringAteDelim(FILE *arq, char *dest, int tamMax)
 {
     int n = 0;
     int c;
-
+   
     while ((c = fgetc(arq)) != EOF) {
-        if (c == DELIMITADOR) {
+        if (c == DELIMITADOR ) {
             dest[n] = '\0';
             return 1;
         }
@@ -124,7 +126,7 @@ static void copia_string(char *destino, const char *origem, int tamMax)
 int csv_LeLinha(FILE *arqCSV, Registro *reg)
 {
     char linha[TAM_LINHA_CSV];
-
+    
     // pula linhas em branco @
     do {
         if (fgets(linha, sizeof(linha), arqCSV) == NULL)
@@ -151,7 +153,7 @@ int csv_LeLinha(FILE *arqCSV, Registro *reg)
     // colunas que faltaram apontam para o fim da linha, ou seja, vazias @
     for (int i = n; i < NUM_COLUNAS_CSV; i++)
         campos[i] = p;
-
+    
     // ordem das colunas: idPoPs, nomePoPs, nomePais, siglaPais @
     reg->idPoPs = (campos[0][0] == '\0') ? VALOR_NULO_INT : atoi(campos[0]);
     copia_string(reg->nomePoPs, campos[1], TAM_MAX_STRING);

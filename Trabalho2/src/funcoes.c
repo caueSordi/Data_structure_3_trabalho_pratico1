@@ -1,7 +1,11 @@
-#include "funcoes.h"
 #include <string.h> 
 #include <stdio.h>
 #include <stdlib.h>
+
+#include "funcoes.h"
+#include "busca.h"
+#include "registro.h"
+#include "arquivo.h"
 
 //Função 1: Leitura do CSV, Criação e Escrita no .bin
 // alterado: agora e a funcionalidade 8 (CREATE TABLE) do trabalho 2 
@@ -131,7 +135,7 @@ int funcao_CREATE_INDEX(char *nomeBin, char *nomeIndice) {
         fclose(arqBIN);
         return 1;
     }
-
+  
     RegistroIndice *indices = NULL;
     if (cab.nroPoPs > 0) {
         indices = malloc(cab.nroPoPs * sizeof(RegistroIndice));
