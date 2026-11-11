@@ -72,6 +72,7 @@ int funcao_CREATE(char *nomeCSV, char *nomeBin){
     arquivo_EscreveInt(arqBIN, nroPares);
 
     arquivo_Close(&arqBIN);
+    
     BinarioNaTela(nomeBin);
 }
 

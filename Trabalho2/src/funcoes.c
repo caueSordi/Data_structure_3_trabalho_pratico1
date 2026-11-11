@@ -288,6 +288,11 @@ int funcao_READVALUE(char *nomeBin, char *nomeIndice, int nBuscas) {
     fclose(arqBIN);
     return 0;
 }
+
+
+int funcao_DELETE(){
+    
+}
 // FEITO: funcao_READVALUE (SELECT WHERE, 11) implementada com busca indexada e sequencial
 
 // apagado: funcao_SELECT_RRN, no TP2 nao existe RRN, a busca por byte offset vai ficar dentro do SELECT WHERE
