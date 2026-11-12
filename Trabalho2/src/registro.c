@@ -1,3 +1,6 @@
+#include <string.h>
+#include <stdlib.h>
+
 #include "registro.h"
 #include "arquivos.h"
 

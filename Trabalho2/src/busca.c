@@ -1,8 +1,9 @@
-#include "busca.h"
-#include "arquivos.h"
-#include "registro.h"
 #include <stdlib.h>
 #include <string.h>
+
+#include "arquivos.h"
+#include "registro.h"
+#include "busca.h"
 
 // novo: compara string do registro com o valor do criterio, "NULO" ou numero vazio casa com campo vazio
 static int stringBate(const char *campo, const char *valor) {

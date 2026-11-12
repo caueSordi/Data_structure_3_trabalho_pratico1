@@ -46,7 +46,7 @@ int arquivo_LeLongLong(FILE *arq, long long *valor);
 int arquivo_LeStringAteDelim(FILE *arq, char *dest, int tamMax);
 
 // csv @
-
+typedef struct registro Registro;
 // le a proxima linha do CSV e preenche o registro, retorna 0 no fim do arquivo @
 // colunas assumidas: idPoPs,nomePoPs,nomePais,siglaPais, confira no seu .csv @
 int csv_LeLinha(FILE *arqCSV, Registro *reg);

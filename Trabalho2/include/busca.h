@@ -22,7 +22,7 @@ int Registro_satisfaz(const Registro *reg, const Criterio *criterios, int nCrite
 int Buscar_sequencial(FILE *arquivo, const Criterio *criterios, int nCriterios,
 long long offsetsEncontrados[], int maxResultados);
 
-#endif
+
 
 // estrutura do indice para memoria
 typedef struct {
@@ -37,3 +37,5 @@ long long busca_binaria_indice(RegistroIndice *indices, int qtd, int idBuscado);
 // removido: @
 // TAM_NOME_CAMPO, ja existe no registro.h com 20 e os dois valores davam conflito @
 // o vetor rrnEncontrados, trocado por offsetsEncontrados @
+
+#endif

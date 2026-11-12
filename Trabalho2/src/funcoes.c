@@ -1,11 +1,12 @@
-#include <string.h> 
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
-#include "funcoes.h"
-#include "busca.h"
+#include "fornecidas.h"
 #include "registro.h"
-#include "arquivo.h"
+#include "arquivos.h"
+#include "busca.h"
+#include "funcoes.h"
 
 //Função 1: Leitura do CSV, Criação e Escrita no .bin
 // alterado: agora e a funcionalidade 8 (CREATE TABLE) do trabalho 2 

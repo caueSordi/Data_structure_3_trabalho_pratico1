@@ -1,7 +1,6 @@
-#include "funcoes.h"
-#include <stdio.h>
 #include <string.h>
- 
+#include <stdio.h>
+#include "funcoes.h"
 int main(){
  
 char nomeCSV[50], nomeBin[50], nomeIndice[50]; //nomeIndice adicionado

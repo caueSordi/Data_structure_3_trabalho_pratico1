@@ -1,10 +1,9 @@
 #ifndef REGISTRO_H
 #define REGISTRO_H
 #include <stdio.h>
-#include <string.h>
-#include <stdlib.h>
+
 #include "registro.h"
-#include "arquivo.h"
+#include "arquivos.h"
 
 #define STATUS_INCONSISTENTE '0'
 #define STATUS_CONSISTENTE '1'
@@ -41,7 +40,7 @@ typedef struct  {
 
 
 
-typedef struct Registro {
+typedef struct registro {
     char removido;
     int tamanhoRegistro;
     long long encadeamento; // byte offset do proximo removido da lista

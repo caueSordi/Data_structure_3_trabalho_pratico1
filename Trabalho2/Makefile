@@ -1,13 +1,21 @@
-all:
-	gcc -o programaTrab *.c
+CC = gcc
+CFLAGS = -Iinclude
+SRC = main.c $(wildcard src/*.c)
+INC = $(wildcard include/*.h)
+TARGET = programaTrab
+
+all: $(TARGET)
+
+$(TARGET): $(SRC) $(INC)
+	$(CC) $(CFLAGS) -o $(TARGET) $(SRC)
 
 run:
-	./programaTrab
+	./$(TARGET)
 
 clean:
-	rm -f programaTrab
+	rm -f $(TARGET)
 
 test: clean all run
 
 zip:
-	zip runcodes.zip Makefile *.c *.h
+	zip runcodes.zip Makefile $(SRC) $(INC)

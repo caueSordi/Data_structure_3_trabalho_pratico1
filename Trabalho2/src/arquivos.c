@@ -1,7 +1,8 @@
 #include <string.h>
 #include <stdlib.h>
+#include "arquivos.h"
 #include "registro.h"
-#include "arquivo.h"
+
 
 
 // o layout do arquivo exige estes tamanhos @
@@ -34,7 +35,7 @@ void arquivo_inicio(FILE *arq)
 
 void arquivo_PosCabecalho(FILE *arq)
 {
-    fseek(arq, TAMANHO_CABECALHO, SEEK_SET);
+    fseek(arq, TAM_CABECALHO, SEEK_SET);
 }
 
 void arquivo_Posiciona(FILE *arq, long long offset)
