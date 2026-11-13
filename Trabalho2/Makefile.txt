@@ -1,0 +1,47 @@
+CC = gcc
+CFLAGS = -Iinclude
+SRC = main.c $(wildcard src/*.c)
+INC = $(wildcard include/*.h)
+TARGET = programaTrab
+TEST_DIR = Casos de Teste
+TMP_DIR = .tmp_test
+CASOS = $(shell seq 1 14)
+
+all: $(TARGET)
+
+$(TARGET): $(SRC) $(INC)
+	$(CC) $(CFLAGS) -o $(TARGET) $(SRC)
+
+run: $(TARGET)
+	./$(TARGET)
+
+test: $(TARGET)
+	@mkdir -p $(TMP_DIR)
+	@pass=0; fail=0; \
+	for i in $(CASOS); do \
+		infile=$$(find "$(TEST_DIR)" -name "$$i.in" | head -n 1); \
+		outfile=$$(find "$(TEST_DIR)" -name "$$i.out" | head -n 1); \
+		if [ -z "$$infile" ]; then \
+			echo "[SKIP] $$i.in não encontrado"; \
+			continue; \
+		fi; \
+		find "$(TEST_DIR)" -type f ! -name "*.in" ! -name "*.out" -exec cp {} $(TMP_DIR)/ \; ; \
+		(cd $(TMP_DIR) && ../$(TARGET)) < "$$infile" > "$(TMP_DIR)/$$i.res"; \
+		if [ -z "$$outfile" ]; then \
+			echo "[AVISO] $$i.out não encontrado"; \
+		elif diff -u --strip-trailing-cr "$$outfile" "$(TMP_DIR)/$$i.res" > "$(TMP_DIR)/$$i.diff"; then \
+			echo "[PASS] Caso $$i"; \
+			pass=$$((pass + 1)); \
+		else \
+			echo "[FAIL] Caso $$i"; \
+			cat "$(TMP_DIR)/$$i.diff"; \
+			fail=$$((fail + 1)); \
+		fi; \
+	done; \
+	echo "Resultado: $$pass passaram, $$fail falharam"; \
+	rm -rf $(TMP_DIR)
+clean:
+	rm -rf $(TARGET) $(TMP_DIR)
+
+zip:
+	zip runcodes.zip Makefile $(SRC) $(INC)

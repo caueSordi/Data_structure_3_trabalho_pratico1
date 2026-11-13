@@ -1,7 +1,8 @@
 #include <string.h>
 #include <stdlib.h>
-#include "arquivos.h"
 #include "registro.h"
+#include "arquivos.h"
+
 
 
 
@@ -10,7 +11,7 @@ _Static_assert(sizeof(long long) == 8, "long long precisa ter 8 bytes");
 _Static_assert(sizeof(int) == 4, "int precisa ter 4 bytes");
 
 #define TAM_LINHA_CSV 1024
-#define NUM_COLUNAS_CSV 4
+#define NUM_COLUNAS_CSV 5
 
 // abertura, fechamento e posicionamento @
 
@@ -140,11 +141,15 @@ int csv_LeLinha(FILE *arqCSV, Registro *reg)
     // separa as colunas sem usar strtok, para nao perder as vazias @
     char *campos[NUM_COLUNAS_CSV];
     int n = 0;
+    int emAspas = 0;
     char *p = linha;
 
     campos[n++] = p;
     while (*p != '\0' && n < NUM_COLUNAS_CSV) {
-        if (*p == ',') {
+        if(*p == '"'){
+            emAspas = !emAspas;
+        }
+        else if (*p == ',' && !emAspas) {
             *p = '\0';
             campos[n++] = p + 1;
         }
@@ -156,14 +161,14 @@ int csv_LeLinha(FILE *arqCSV, Registro *reg)
         campos[i] = p;
     
     // ordem das colunas: idPoPs, nomePoPs, nomePais, siglaPais @
-    reg->idPoPs = (campos[0][0] == '\0') ? VALOR_NULO_INT : atoi(campos[0]);
-    copia_string(reg->nomePoPs, campos[1], TAM_MAX_STRING);
-    copia_string(reg->nomePais, campos[2], TAM_MAX_STRING);
+    reg->idPoPs = (campos[1][0] == '\0') ? VALOR_NULO_INT : atoi(campos[1]);
+    copia_string(reg->nomePoPs, campos[2], TAM_MAX_STRING);
+    copia_string(reg->nomePais, campos[3], TAM_MAX_STRING);
 
     // sigla vazia continua "$$" (nulo) @
-    if (campos[3][0] != '\0') {
-        reg->siglaPais[0] = campos[3][0];
-        reg->siglaPais[1] = (campos[3][1] != '\0') ? campos[3][1] : VALOR_NULO_CHAR;
+    if (campos[4][0] != '\0') {
+        reg->siglaPais[0] = campos[4][0];
+        reg->siglaPais[1] = (campos[4][1] != '\0') ? campos[4][1] : VALOR_NULO_CHAR;
     }
 
     return 1;

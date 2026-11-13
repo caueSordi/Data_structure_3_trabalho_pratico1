@@ -2,8 +2,6 @@
 #define REGISTRO_H
 #include <stdio.h>
 
-#include "registro.h"
-#include "arquivos.h"
 
 #define STATUS_INCONSISTENTE '0'
 #define STATUS_CONSISTENTE '1'
@@ -19,7 +17,7 @@
 
 #define TAM_CABECALHO 25
 #define BYTES_ANTES_TAMANHO 5 // tamanho do registro removido + tamanhoRegistro
-#define BYTES_FIXOS_APOS_TAMANHO 14 // encadeamento(8) + idPoPs(4) + siglaPais(2)
+#define BYTES_FIXOS_REGISTRO 19// encadeamento(8) + idPoPs(4) + siglaPais(2)
 // atencao: assume que tamanhoRegistro nao conta os 5 primeiros bytes
 
 #define TAM_SIGLA 2
@@ -36,7 +34,7 @@ typedef struct  {
 
     int nroRegRem;
     int nroPoPs;
-}Cabecalho;
+} Cabecalho;
 
 
 
@@ -48,7 +46,7 @@ typedef struct registro {
     char siglaPais[TAM_SIGLA + 1]; // 2 chars + '\0' em memoria, nulo = "$$" 
     char nomePoPs[TAM_MAX_STRING]; // vazio = nulo 
     char nomePais[TAM_MAX_STRING]; // vazio = nulo
-} Registro ; 
+} Registro; 
 
 void Inicializa_registro(Registro *reg);
 //coloca o registro em um estado vazio conhecido antes de inserir dados

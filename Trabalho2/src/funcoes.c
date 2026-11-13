@@ -60,6 +60,7 @@ int funcao_CREATE(char *nomeCSV, char *nomeBin){
 
   
     cabecalho.status = STATUS_CONSISTENTE; 
+    arquivo_inicio(arqBIN);
     Escrever_Cabecalho(arqBIN, &cabecalho); 
     // apagado: arquivo_inicio e a escrita campo a campo do cabecalho antigo 
 
@@ -91,7 +92,7 @@ int funcao_READ_ALL(char *nomeBin){
         return 1;
     }
 
-    if(cab.status == STATUS_INCONSISTENTE){
+    if(cab.status != STATUS_CONSISTENTE){
         printf("Falha no processamento do arquivo.\n");
         fclose (arqBIN);
         return 1;
@@ -149,7 +150,7 @@ int funcao_CREATE_INDEX(char *nomeBin, char *nomeIndice) {
     
     // extrai dados ativos do arquivo de dados para o array
     while (Ler_registro(arqBIN, &reg)) {
-        if (reg.removido != REGISTRO_REMOVIDO) {
+        if (reg.removido != REGISTRO_REMOVIDO && reg.idPoPs != VALOR_NULO_INT) {
             if (indices != NULL) {
                 indices[qtdIndices].idPoPs = reg.idPoPs;
                 indices[qtdIndices].byteOffset = offsetAtual;
@@ -295,8 +296,207 @@ int funcao_READVALUE(char *nomeBin, char *nomeIndice, int nBuscas) {
 }
 
 
-int funcao_DELETE(){
+//Funcao 12: remocao logica, percorre arquivo e marca REGISTRO_REMOVIDO
+void remove_chaveIdx(RegistroIndice *Idx, int *qtdIdx, int idRem){
+    int esquerda =0;
+    int direita = *qtdIdx - 1;
+    int posicao = -1;
+
+    while(esquerda <= direita)
+    {
+        int meio = esquerda + (direita - esquerda) /2;
+        if(Idx[meio].idPoPs == idRem){
+            posicao = meio;
+            break;
+        }else if(Idx[meio].idPoPs < idRem)
+        {
+            esquerda = meio +1;
+        }
+        else {
+            direita = meio -1;
+        }
+    }
+
+    if( posicao != -1)
+    {
+        for(int i = posicao; i< (*qtdIdx) - 1; i++)
+        {
+            Idx[i] = Idx[i + 1];
+        }
+        (*qtdIdx)--;
+    }
+}
+
+void remocao_logica(FILE *ArqBin, RegistroIndice *Idx, int *qtdIdx, Cabecalho *cab, long long posReg, int tamReg, int id){
+    long long anterior = -1;
+    long long atual  = cab->topoLista;
     
+    //percorre a lista de reomovidos (worst fit)
+    while(atual != -1){
+        char remAtual;
+        int tamAtual;
+        long long proxAtual;
+
+        //leitura somentes dos dados necessarios
+        arquivo_Posiciona(ArqBin, atual);
+        arquivo_LeChar(ArqBin, &remAtual);
+        arquivo_LeInt(ArqBin, &tamAtual);
+        arquivo_LeLongLong(ArqBin, &proxAtual);
+        
+
+        if (tamAtual <= tamReg) break;
+
+        anterior = atual;
+        atual = proxAtual;
+    }
+
+    //gravacao dos dados
+    arquivo_Posiciona(ArqBin, posReg);
+    arquivo_EscreveChar(ArqBin, REGISTRO_REMOVIDO);
+    arquivo_EscreveInt(ArqBin, tamReg);
+    arquivo_EscreveLongLong(ArqBin, atual);
+    arquivo_EscreveLixo(ArqBin, tamReg - 8);
+
+    //up no encadeamento 
+    if (anterior == -1){
+        cab->topoLista = posReg;
+    }
+    else{
+        arquivo_Posiciona(ArqBin, anterior+5);
+        arquivo_EscreveLongLong(ArqBin, posReg);
+        
+    }
+
+    cab->nroPoPs--;
+    cab->nroRegRem++;    
+
+    //remocao da chave correspond no idx primario
+    remove_chaveIdx(Idx, qtdIdx, id);
+}
+void funcao_DELETE(char *nomeBin, char *nomeIndice, int n){
+    
+    FILE *arqBIN = fopen(nomeBin, "rb+");
+    FILE *arqIdx = fopen(nomeIndice, "rb+");
+
+    if (arqBIN == NULL) {
+        printf("Falha no processamento do arquivo.\n");
+        return ;
+    }
+
+    if(arqIdx == NULL){
+        printf("Falha no processamento do arquivo.\n");
+        fclose(arqBIN);
+        return ;
+    }
+
+    Cabecalho cab;
+    char statusIdx;
+    if(!Ler_Cabecalho(arqBIN, &cab) || cab.status == STATUS_INCONSISTENTE
+        || !arquivo_LeChar(arqIdx, &statusIdx) || statusIdx == STATUS_INCONSISTENTE){
+        printf("Falha no processamento do arquivo.\n");
+        fclose(arqBIN);
+        fclose(arqIdx);
+        return ;
+    }
+
+
+    //carregando o arquido de indice
+    fseek(arqIdx, 0, SEEK_END);
+    long long tamArqIdx = arquivo_PosicaoAtual(arqIdx);
+    int qtdIdx = (int)((tamArqIdx - 1) / (sizeof(int) + sizeof(long long)));
+    RegistroIndice *Idxs = NULL;
+
+    if(qtdIdx > 0){
+        Idxs = (RegistroIndice *)malloc(qtdIdx * sizeof(RegistroIndice));
+        arquivo_Posiciona(arqIdx,1);
+
+        //leitura do arquivo
+        for(int i=0; i< qtdIdx; i++)
+        {
+            arquivo_LeInt(arqIdx, &Idxs[i].idPoPs);
+            arquivo_LeLongLong(arqIdx, &Idxs[i].byteOffset);
+        }
+    }
+
+    //marca arquivo como inconsistente durante a modificacao
+    cab.status = STATUS_INCONSISTENTE;
+    arquivo_inicio(arqBIN);
+    Escrever_Cabecalho(arqBIN,&cab);
+
+    arquivo_inicio(arqIdx);
+    arquivo_EscreveChar(arqIdx, STATUS_INCONSISTENTE);
+    fclose(arqIdx);
+
+    //realizando as N buscas
+    for(int i =0; i< n; i++)
+    {
+        int nCriterios;
+        scanf("%d", &nCriterios);
+
+        Criterio criterios[MAX_CRITERIOS];
+        for(int j =0; j< nCriterios; j++)
+        {
+            scanf("%s", criterios[j].nomeCampo);
+            ScanQuoteString(criterios[j].valor);
+        }
+
+        long long posicao = TAM_CABECALHO;
+        while (posicao < cab.proxByteOffset){
+            long long posReg = posicao;
+            Registro reg;
+            arquivo_Posiciona(arqBIN, posReg);
+            if(!Ler_registro(arqBIN, &reg)) break;
+
+            posicao = posReg + 5 + reg.tamanhoRegistro;
+
+            if( reg.removido == REGISTRO_REMOVIDO) continue;
+            if(!Registro_satisfaz(&reg, criterios, nCriterios)) continue;
+            /*
+            int match = 1;
+            for(int k=0; k<nCriterios; k++)
+            {
+                if(strcmp(criterios[k].nomeCampo, "idPoPs") == 0){
+                    if(reg.idPoPs != atoi(criterios[k].valor)) match = 0;
+                }
+                 if(strcmp(criterios[k].nomeCampo, "siglaPais")== 0){
+                    if(strcmp(reg.siglaPais ,criterios[k].valor)) match = 0;
+                }
+                 if(strcmp(criterios[k].nomeCampo, "nomePais")== 0){
+                    if(strcmp(reg.nomePais ,criterios[k].valor)) match = 0;
+                }
+                 if(strcmp(criterios[k].nomeCampo, "nomePoPs")== 0){
+                    if(strcmp(reg.nomePoPs ,criterios[k].valor)) match = 0;
+                }
+            }
+                if(!match) continue;
+                */
+
+                remocao_logica(arqBIN, Idxs, &qtdIdx, &cab, posReg, reg.tamanhoRegistro, reg.idPoPs);
+
+            
+            }
+        }
+
+        cab.status = STATUS_CONSISTENTE;
+        arquivo_inicio(arqBIN);
+        Escrever_Cabecalho(arqBIN,&cab);
+        fclose(arqBIN);
+
+        //regravando o arqIdx
+        arqIdx = fopen(nomeIndice, "wb");
+        arquivo_EscreveChar(arqIdx, STATUS_CONSISTENTE);
+        for(int i =0; i< qtdIdx; i++){
+            arquivo_EscreveInt(arqIdx, Idxs[i].idPoPs);
+            arquivo_EscreveLongLong(arqIdx, Idxs[i].byteOffset);
+        }
+    
+        fclose(arqIdx);
+        free(Idxs);
+
+        BinarioNaTela(nomeBin);
+        BinarioNaTela(nomeIndice);
+
+
 }
 // FEITO: funcao_READVALUE (SELECT WHERE, 11) implementada com busca indexada e sequencial
 

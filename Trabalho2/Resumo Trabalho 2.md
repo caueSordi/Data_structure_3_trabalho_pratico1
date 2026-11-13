@@ -11,12 +11,13 @@
 tamTotal = 25 bytes
 
 ### Registro de Dados:
+* removido: 1 byte (string)
+* tamReg: 4 bytes (int)
 * idPoPs: não pode ser nulo. 4 bytes (int)
 * siglaPais: 2 bytes( string)
 * nomePoPs: X bytes(string) {TAMANHO VARIAVEL}
 * nomePais: X bytes(string) {TAMANHO VARIAVEL}
-* removido: 1 byte (string)
-* tamReg: 4 bytes (int)
+
 * encadeamentoLista: 8 bytes (int)
 
 ## Descrição do Arquivo de Índice Primário indexaPoPs

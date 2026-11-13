@@ -13,6 +13,13 @@ char nomeCampo[TAM_NOME_CAMPO];
 char valor[TAM_VALOR_CAMPO];
 } Criterio;
 
+// estrutura do indice para memoria
+typedef struct regsitroindice{
+    int idPoPs;
+    long long byteOffset;
+} RegistroIndice;
+
+typedef struct registro Registro;
 /* testa se um registro ativo atende todos os critérios (AND lógico)
  É reutilizada nas buscas, remoções e atualizações.. */
 int Registro_satisfaz(const Registro *reg, const Criterio *criterios, int nCriterios);
@@ -22,13 +29,6 @@ int Registro_satisfaz(const Registro *reg, const Criterio *criterios, int nCrite
 int Buscar_sequencial(FILE *arquivo, const Criterio *criterios, int nCriterios,
 long long offsetsEncontrados[], int maxResultados);
 
-
-
-// estrutura do indice para memoria
-typedef struct {
-    int idPoPs;
-    long long byteOffset;
-} RegistroIndice;
 
 int compara_indice(const void *a, const void *b);
 long long busca_binaria_indice(RegistroIndice *indices, int qtd, int idBuscado);
