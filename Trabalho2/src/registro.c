@@ -102,24 +102,24 @@ void Imprimir_registro(const Registro *reg)
 
     // alterado: campos novos e formato provisorio, confira os rotulos no PDF @
     if (reg->idPoPs == VALOR_NULO_INT)
-        printf("Identificador do ponto: NULO\n");
+        printf("NULO ");
     else
-        printf("Identificador do ponto: %d\n", reg->idPoPs);
+        printf("%d ", reg->idPoPs);
 
     if (reg->nomePoPs[0] == '\0')
-        printf("Nome do ponto: NULO\n");
+        printf("NULO ");
     else
-        printf("Nome do ponto: %s\n", reg->nomePoPs);
+        printf("%s ", reg->nomePoPs);
 
     if (reg->nomePais[0] == '\0')
-        printf("Pais de localizacao: NULO\n");
+        printf("NULO ");
     else
-        printf("Pais de localizacao: %s\n", reg->nomePais);
+        printf("%s ", reg->nomePais);
 
     if (reg->siglaPais[0] == VALOR_NULO_CHAR)
-        printf("Sigla do pais: NULO\n");
+        printf("NULO");
     else
-        printf("Sigla do pais: %c%c\n", reg->siglaPais[0], reg->siglaPais[1]);
+        printf("%c%c", reg->siglaPais[0], reg->siglaPais[1]);
 
     printf("\n");
     // apagado: impressao de IDPoPs_Conectado, velocidade e unidade_medida @
