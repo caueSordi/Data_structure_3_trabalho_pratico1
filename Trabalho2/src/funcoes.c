@@ -10,7 +10,7 @@
 
 // Função 8: Leitura do CSV, Criação e Escrita no .bin
 //  alterado: agora e a funcionalidade 8 (CREATE TABLE) do trabalho 2
-int funcao_CREATE(char *nomeCSV, char *nomeBin)
+void funcao_CREATE(char *nomeCSV, char *nomeBin)
 {
     FILE *arqCSV, *arqBIN;
 
@@ -26,7 +26,7 @@ int funcao_CREATE(char *nomeCSV, char *nomeBin)
     if (arqCSV == NULL)
     {
         printf("Falha no processamento do arquivo.\n");
-        return 1;
+        return;
     }
 
     arquivo_Abertura(&arqBIN, nomeBin, "wb");
@@ -35,7 +35,7 @@ int funcao_CREATE(char *nomeCSV, char *nomeBin)
     {
         printf("Falha no processamento do arquivo.\n");
         arquivo_Close(&arqCSV);
-        return 1;
+        return;
     }
 
     // escrita do cabecalho 1
@@ -69,17 +69,17 @@ int funcao_CREATE(char *nomeCSV, char *nomeBin)
     arquivo_Close(&arqCSV);
     arquivo_Close(&arqBIN);
     BinarioNaTela(nomeBin);
-    return 0;
+    return;
 }
 
 // case 9 Create index
-int funcao_CREATE_INDEX(char *nomeBin, char *nomeIndice)
+void funcao_CREATE_INDEX(char *nomeBin, char *nomeIndice)
 {
     FILE *arqBIN = fopen(nomeBin, "rb");
     if (arqBIN == NULL)
     {
         printf("Falha no processamento do arquivo.\n");
-        return 1;
+        return;
     }
 
     Cabecalho cab;
@@ -87,7 +87,7 @@ int funcao_CREATE_INDEX(char *nomeBin, char *nomeIndice)
     {
         printf("Falha no processamento do arquivo.\n");
         fclose(arqBIN);
-        return 1;
+        return;
     }
 
     RegistroIndice *indices = NULL;
@@ -129,7 +129,7 @@ int funcao_CREATE_INDEX(char *nomeBin, char *nomeIndice)
         printf("Falha no processamento do arquivo.\n");
         if (indices)
             free(indices);
-        return 1;
+        return;
     }
 
     char status = '0';
@@ -152,13 +152,13 @@ int funcao_CREATE_INDEX(char *nomeBin, char *nomeIndice)
         free(indices);
 
     BinarioNaTela(nomeIndice);
-    return 0;
+    return;
 }
 
 // Funcao 10:lista todos os registros (todos registros nao excluidos)
 //  alterado: agora e a funcionalidade 10 (SELECT) do Trabalho 2
 
-int funcao_READ_ALL(char *nomeBin)
+void funcao_READ_ALL(char *nomeBin)
 {
     // USAR AS FUNCOES DO ARQUVIO.H
     FILE *arqBIN = fopen(nomeBin, "rb");
@@ -167,7 +167,7 @@ int funcao_READ_ALL(char *nomeBin)
     if (arqBIN == NULL)
     {
         printf("Falha no processamento do arquivo.\n");
-        return 1;
+        return;
     }
 
     Cabecalho cab;
@@ -175,14 +175,14 @@ int funcao_READ_ALL(char *nomeBin)
     {
         printf("Falha no processamento do arquivo.\n");
         fclose(arqBIN); // novo: faltava fechar o arquivo
-        return 1;
+        return;
     }
 
     if (cab.status != STATUS_CONSISTENTE)
     {
         printf("Falha no processamento do arquivo.\n");
         fclose(arqBIN);
-        return 1;
+        return;
     }
 
     // Ler_Cabecalho já deixouo ponteiro para o inicio ro RRN 0, mas o fseek  deixa isso explicito e protege contra mudanças na leitura do cabecalho
@@ -208,11 +208,11 @@ int funcao_READ_ALL(char *nomeBin)
     }
 
     fclose(arqBIN);
-    return 0;
+    return;
 }
 
 // case 11 implementada com busca indexada e sequencial
-int funcao_READVALUE(char *nomeBin, char *nomeIndice, int nBuscas)
+void funcao_READVALUE(char *nomeBin, char *nomeIndice, int nBuscas)
 {
     FILE *arqBIN = fopen(nomeBin, "rb");
     FILE *arqIND = fopen(nomeIndice, "rb");
@@ -224,7 +224,7 @@ int funcao_READVALUE(char *nomeBin, char *nomeIndice, int nBuscas)
             fclose(arqBIN);
         if (arqIND)
             fclose(arqIND);
-        return 1;
+        return;
     }
 
     Cabecalho cab;
@@ -233,7 +233,7 @@ int funcao_READVALUE(char *nomeBin, char *nomeIndice, int nBuscas)
         printf("Falha no processamento do arquivo.\n");
         fclose(arqBIN);
         fclose(arqIND);
-        return 1;
+        return;
     }
 
     char statusIndice;
@@ -242,7 +242,7 @@ int funcao_READVALUE(char *nomeBin, char *nomeIndice, int nBuscas)
         printf("Falha no processamento do arquivo.\n");
         fclose(arqBIN);
         fclose(arqIND);
-        return 1;
+        return;
     }
 
     // carrega indice inteiro para a memoria
@@ -332,7 +332,7 @@ int funcao_READVALUE(char *nomeBin, char *nomeIndice, int nBuscas)
     if (indices)
         free(indices);
     fclose(arqBIN);
-    return 0;
+    return;
 }
 
 // Funcao 12: remocao logica, percorre arquivo e marca REGISTRO_REMOVIDO
@@ -555,6 +555,62 @@ void insere_chaveIdx(RegistroIndice **Idx, int *qtdIdx, int id, long long offset
     (*Idx)[posicao].byteOffset = offset;
     (*qtdIdx)++;
 }
+
+int insere_registro_worst_fit(FILE *arqBIN, Cabecalho *cab, Registro *regNovo, RegistroIndice **Idxs, int *qtdIdx)
+{
+    Registro regTopo;
+    int tamNovo = calcula_tamanho_registro(regNovo);
+    int tamTopo = 0;
+    long long prox = LISTA_VAZIA;
+    long long offsetTopo = cab->topoLista;
+    long long offsetInsert;
+
+    if (offsetTopo != LISTA_VAZIA)
+    {
+        if (!Ler_registro_offset(arqBIN, offsetTopo, &regTopo))
+        {
+            printf("Falha no processamento do arquivo.\n");
+            return 0;
+        }
+        tamTopo = regTopo.tamanhoRegistro;
+        prox = regTopo.encadeamento;
+    }
+
+    regNovo->removido = REGISTRO_NAO_REMOVIDO;
+    regNovo->encadeamento = LISTA_VAZIA;
+
+    // Worst Fit: insere no fim se a lista estiver vazia ou se o maior espaco nao comportar
+    if (offsetTopo == LISTA_VAZIA || tamTopo < tamNovo)
+    {
+        offsetInsert = cab->proxByteOffset;
+        regNovo->tamanhoRegistro = tamNovo;
+
+        arquivo_Posiciona(arqBIN, offsetInsert);
+        Escrever_registro(arqBIN, regNovo);
+
+        cab->proxByteOffset += tamNovo;
+        cab->nroPoPs++;
+    }
+    else
+    {
+        offsetInsert = offsetTopo;
+        regNovo->tamanhoRegistro = tamTopo;
+
+        arquivo_Posiciona(arqBIN, offsetInsert);
+        Escrever_registro(arqBIN, regNovo);
+
+        cab->topoLista = prox;
+        cab->nroRegRem--;
+        cab->nroPoPs++;
+    }
+
+    if (regNovo->idPoPs != VALOR_NULO_INT)
+    {
+        insere_chaveIdx(Idxs, qtdIdx, regNovo->idPoPs, offsetInsert);
+    }
+
+    return 1;
+}
 void funcao_INSERT(char *nomeBin, char *nomeIdx, int n)
 {
     FILE *arqBIN = fopen(nomeBin, "rb+");
@@ -623,7 +679,6 @@ void funcao_INSERT(char *nomeBin, char *nomeIdx, int n)
         ScanQuoteString(nome);
         ScanQuoteString(pais);
         ScanQuoteString(sigla);
-        
 
         // nova estrturua de reg
         Inicializa_registro(&reg_aux);
@@ -637,54 +692,11 @@ void funcao_INSERT(char *nomeBin, char *nomeIdx, int n)
             reg_aux.siglaPais[1] = (sigla[1] != '\0') ? sigla[1] : VALOR_NULO_CHAR;
         }
 
-        
-
         tamNovo = calcula_tamanho_registro(&reg_aux);
         offsetTopo = cab.topoLista;
 
-        if (offsetTopo != -1)
-        {
-            if (!Ler_registro_offset(arqBIN, offsetTopo, &reg))
-            {
-
-                printf("Falha no processamento do arquivo.");
-                break;
-            }
-            tamTopo = reg.tamanhoRegistro;
-            prox = reg.encadeamento;
-        }
-
-        // worst first
-        if (offsetTopo == -1 || tamTopo < tamNovo) // escreveremos no final do arquivo
-        {
-            // escreve Reg_aux no final do arquivo
-            offsetInsert = cab.proxByteOffset;
-            reg_aux.tamanhoRegistro = tamNovo;
-            reg_aux.encadeamento = LISTA_VAZIA;
-
-            arquivo_Posiciona(arqBIN, offsetInsert);
-            Escrever_registro(arqBIN, &reg_aux);
-
-            cab.proxByteOffset += tamNovo;
-            cab.nroPoPs++;
-        }
-        else
-        { // reaproveita o espaço
-            offsetInsert = offsetTopo;
-            reg_aux.tamanhoRegistro = tamTopo;
-            reg_aux.encadeamento = LISTA_VAZIA;
-
-            arquivo_Posiciona(arqBIN, offsetInsert);
-            Escrever_registro(arqBIN, &reg_aux);
-
-            cab.topoLista = prox;
-            cab.nroRegRem--;
-            cab.nroPoPs++;
-        }
-        if (id != VALOR_NULO_INT)
-        { // atualiza o arquivo de indices
-            insere_chaveIdx(&Idxs, &qtdIdx, id, offsetInsert);
-        }
+        if (!insere_registro_worst_fit(arqBIN, &cab, &reg_aux, &Idxs, &qtdIdx))
+            break;
     }
 
     // voltando a consistencia
@@ -715,11 +727,195 @@ void funcao_INSERT(char *nomeBin, char *nomeIdx, int n)
     BinarioNaTela(nomeIdx);
 }
 
-void funcao_UPDATE(char *nomeBin, *nome)
-// FEITO: funcao_READVALUE (SELECT WHERE, 11) implementada com busca indexada e sequencial
+void atualiza_registro(Criterio *dados, int nDados, Registro *reg)
+{
 
-// apagado: funcao_SELECT_RRN, no TP2 nao existe RRN, a busca por byte offset vai ficar dentro do SELECT WHERE
+    for (int i = 0; i < nDados; i++)
+    {
+        if (strcmp(dados[i].nomeCampo, "idPoPs") == 0)
+        {
+            reg->idPoPs = campoIntCMP(dados[i].valor);
+        }
+        if (strcmp(dados[i].nomeCampo, "nomePoPs") == 0)
+        {
+            strcpy(reg->nomePoPs, dados[i].valor);
+        }
+        if (strcmp(dados[i].nomeCampo, "nomePais") == 0)
+        {
+            strcpy(reg->nomePais, dados[i].valor);
+        }
+        else if (strcmp(dados[i].nomeCampo, "siglaPais") == 0)
+        {
+            if (dados[i].valor[0] == '\0')
+            {
+                reg->siglaPais[0] = VALOR_NULO_CHAR;
+                reg->siglaPais[1] = VALOR_NULO_CHAR;
+            }
+            else
+            {
+                reg->siglaPais[0] = dados[i].valor[0];
+                reg->siglaPais[1] = (dados[i].valor[1] != '\0') ? dados[i].valor[1] : VALOR_NULO_CHAR;
+            }
+        }
+    }
+}
 
-// pendente: funcao_DELETE (12), funcao_INSERT (13) e funcao_UPDATE (14) ficam para os passos 5 e 6, vao ser reescritas com Worst Fit e indice
+void funcao_UPDATE(char *nomeBin, char *nomeIdx, int n)
+{
+    FILE *arqBIN = fopen(nomeBin, "rb+");
+    FILE *arqIdx = fopen(nomeIdx, "rb+");
 
-// FEITO: funcao_CREATE_INDEX (9) e a funcionalidade nova do TP2, fica para o passo 4
+    if (arqBIN == NULL)
+    {
+        printf("Falha no processamento do arquivo.\n");
+        return;
+    }
+
+    if (arqIdx == NULL)
+    {
+        printf("Falha no processamento do arquivo.\n");
+        fclose(arqBIN);
+        return;
+    }
+
+    Cabecalho cab;
+    char statusIdx;
+    if (!Ler_Cabecalho(arqBIN, &cab) || cab.status == STATUS_INCONSISTENTE || !arquivo_LeChar(arqIdx, &statusIdx) || statusIdx == STATUS_INCONSISTENTE)
+    {
+        printf("Falha no processamento do arquivo.\n");
+        fclose(arqBIN);
+        fclose(arqIdx);
+        return;
+    }
+
+    // carregando o arquido de indice
+    fseek(arqIdx, 0, SEEK_END);
+    long long tamArqIdx = arquivo_PosicaoAtual(arqIdx);
+    int qtdIdx = (int)((tamArqIdx - 1) / (sizeof(int) + sizeof(long long)));
+    RegistroIndice *Idxs = NULL;
+
+    if (qtdIdx > 0)
+    {
+        Idxs = (RegistroIndice *)malloc(qtdIdx * sizeof(RegistroIndice));
+        arquivo_Posiciona(arqIdx, 1);
+
+        // leitura do arquivo
+        for (int i = 0; i < qtdIdx; i++)
+        {
+            arquivo_LeInt(arqIdx, &Idxs[i].idPoPs);
+            arquivo_LeLongLong(arqIdx, &Idxs[i].byteOffset);
+        }
+    }
+
+    // marca arquivo como inconsistente durante a modificacao
+    cab.status = STATUS_INCONSISTENTE;
+    arquivo_inicio(arqBIN);
+    Escrever_Cabecalho(arqBIN, &cab);
+
+    arquivo_inicio(arqIdx);
+    arquivo_EscreveChar(arqIdx, STATUS_INCONSISTENTE);
+    fclose(arqIdx);
+
+    for (int i = 0; i < n; i++)
+    {
+        int nBuscas, nUpdates;
+
+        // leituras dos N/p parametros de busca e atualização
+        scanf("%d", &nBuscas);
+        Criterio Buscas[MAX_CRITERIOS], Updates[MAX_CRITERIOS];
+        for (int j = 0; j < nBuscas; j++)
+        {
+            scanf("%s", Buscas[j].nomeCampo);
+            ScanQuoteString(Buscas[j].valor);
+        }
+
+        scanf("%d", &nUpdates);
+        for (int j = 0; j < nUpdates; j++)
+        {
+            scanf("%s", Updates[j].nomeCampo);
+            ScanQuoteString(Updates[j].valor);
+        }
+
+        long long posicao = TAM_CABECALHO;
+        long long limBusca = cab.proxByteOffset;
+
+        // verificando se ha regs que possuem os parametros de busca
+        while (posicao < limBusca)
+        {
+            long long posReg = posicao;
+            Registro regAntigo;
+            arquivo_Posiciona(arqBIN, posReg);
+            if (!Ler_registro(arqBIN, &regAntigo))
+                break;
+
+            posicao = posReg + regAntigo.tamanhoRegistro;
+
+            if (regAntigo.removido == REGISTRO_REMOVIDO)
+                continue;
+            if (!Registro_satisfaz(&regAntigo, Buscas, nBuscas))
+                continue;
+
+            Registro regNovo = regAntigo;
+            atualiza_registro(Updates, nUpdates, &regNovo);
+
+            int tamAntigo = regAntigo.tamanhoRegistro;
+            int tamNovo = calcula_tamanho_registro(&regNovo);
+
+            if (tamNovo <= tamAntigo)
+            {
+                // atualiza os paranmentros
+                regNovo.removido = REGISTRO_NAO_REMOVIDO;
+                regNovo.tamanhoRegistro = tamAntigo;
+                regNovo.encadeamento = LISTA_VAZIA;
+
+                arquivo_Posiciona(arqBIN, posReg);
+                Escrever_registro(arqBIN, &regNovo);
+
+                // verificação da chave nova
+                if (regAntigo.idPoPs != regNovo.idPoPs)
+                {
+                    if (regAntigo.idPoPs != VALOR_NULO_INT && Idxs != NULL)
+                        remove_chaveIdx(Idxs, &qtdIdx, regAntigo.idPoPs);
+                    if (regNovo.idPoPs != VALOR_NULO_INT)
+                        insere_chaveIdx(&Idxs, &qtdIdx, regNovo.idPoPs, posReg);
+                }
+            }
+            else
+            {
+                // o novo Reg é maior do que o tam disponivel
+                remocao_logica(arqBIN, Idxs, &qtdIdx, &cab, posReg, tamAntigo, regAntigo.idPoPs);
+
+                // insercao do novo reg
+                if (!insere_registro_worst_fit(arqBIN, &cab, &regNovo, &Idxs, &qtdIdx))
+                    break;
+            }
+        }
+    }
+
+    // voltando a consistencia
+    cab.status = STATUS_CONSISTENTE;
+    arquivo_inicio(arqBIN);
+    Escrever_Cabecalho(arqBIN, &cab);
+    fclose(arqBIN);
+
+    arqIdx = fopen(nomeIdx, "wb");
+    if (arqIdx == NULL)
+    {
+        printf("Falha no processamento do arquivo.");
+        free(Idxs);
+        return;
+    }
+
+    arquivo_EscreveChar(arqIdx, STATUS_CONSISTENTE);
+    for (int i = 0; i < qtdIdx; i++)
+    {
+        arquivo_EscreveInt(arqIdx, Idxs[i].idPoPs);
+        arquivo_EscreveLongLong(arqIdx, Idxs[i].byteOffset);
+    }
+
+    fclose(arqIdx);
+    free(Idxs);
+
+    BinarioNaTela(nomeBin);
+    BinarioNaTela(nomeIdx);
+}

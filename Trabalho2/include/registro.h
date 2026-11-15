@@ -51,6 +51,9 @@ typedef struct registro {
 void Inicializa_registro(Registro *reg);
 //coloca o registro em um estado vazio conhecido antes de inserir dados
 
+
+
+
 int Ler_registro(FILE *arquivo, Registro *reg); 
 // le registro ativo ou removido e deixa o ponteiro no proximo registro
 

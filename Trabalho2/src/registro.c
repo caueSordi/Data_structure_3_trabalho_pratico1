@@ -3,6 +3,7 @@
 
 #include "registro.h"
 #include "arquivos.h"
+#include "busca.h"
 
 void Inicializa_registro(Registro *reg)
 {
@@ -28,10 +29,10 @@ int Ler_registro(FILE *arquivo, Registro *reg)
     if (fread(&reg->tamanhoRegistro, sizeof(int), 1, arquivo) != 1)
         return 0; // novo @
     if (reg->tamanhoRegistro < BYTES_FIXOS_REGISTRO)
-        return 0;      
-                                                             // novo: tamanho invalido @
-    long fimRegistro = inicio +  reg->tamanhoRegistro; // novo: onde comeca o proximo registro @
-    
+        return 0;
+    // novo: tamanho invalido @
+    long fimRegistro = inicio + reg->tamanhoRegistro; // novo: onde comeca o proximo registro @
+
     if (fread(&reg->encadeamento, sizeof(long long), 1, arquivo) != 1)
         return 0; // alterado: era int encadeamento_pilha @
 
@@ -233,5 +234,6 @@ int calcula_tamanho_registro(const Registro *reg)
 // novo: bytes que o registro ocupa no arquivo @
 int tamanho_total_registro(const Registro *reg)
 {
-    return  reg->tamanhoRegistro;
+    return reg->tamanhoRegistro;
 }
+

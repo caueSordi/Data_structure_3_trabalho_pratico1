@@ -40,6 +40,10 @@ switch(func) {
         scanf("%s %s %d", nomeBin, nomeIndice, &n);
         funcao_INSERT(nomeBin, nomeIndice, n);
         break;
+    case 14:
+        scanf("%s %s %d", nomeBin, nomeIndice, &n);
+        funcao_UPDATE(nomeBin, nomeIndice, n);
+        break;
 }
 
  
