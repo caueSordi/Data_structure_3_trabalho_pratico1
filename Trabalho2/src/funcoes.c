@@ -538,6 +538,184 @@ void funcao_DELETE(char *nomeBin, char *nomeIndice, int n)
     BinarioNaTela(nomeBin);
     BinarioNaTela(nomeIndice);
 }
+
+void insere_chaveIdx(RegistroIndice **Idx, int *qtdIdx, int id, long long offset)
+{
+    *Idx = realloc(*Idx, (*qtdIdx + 1) * sizeof(RegistroIndice));
+
+    int posicao = *qtdIdx;
+    // procura a posicao do menor indice ate o momento
+    while (posicao > 0 && (*Idx)[posicao - 1].idPoPs > id)
+    {
+        (*Idx)[posicao] = (*Idx)[posicao - 1];
+        posicao--;
+    }
+    // insercao
+    (*Idx)[posicao].idPoPs = id;
+    (*Idx)[posicao].byteOffset = offset;
+    (*qtdIdx)++;
+}
+void funcao_INSERT(char *nomeBin, char *nomeIdx, int n)
+{
+    FILE *arqBIN = fopen(nomeBin, "rb+");
+    FILE *arqIdx = fopen(nomeIdx, "rb+");
+
+    if (arqBIN == NULL)
+    {
+        printf("Falha no processamento do arquivo.\n");
+        return;
+    }
+
+    if (arqIdx == NULL)
+    {
+        printf("Falha no processamento do arquivo.\n");
+        fclose(arqBIN);
+        return;
+    }
+
+    Cabecalho cab;
+    char statusIdx;
+    if (!Ler_Cabecalho(arqBIN, &cab) || cab.status == STATUS_INCONSISTENTE || !arquivo_LeChar(arqIdx, &statusIdx) || statusIdx == STATUS_INCONSISTENTE)
+    {
+        printf("Falha no processamento do arquivo.\n");
+        fclose(arqBIN);
+        fclose(arqIdx);
+        return;
+    }
+
+    // carregando o arquido de indice
+    fseek(arqIdx, 0, SEEK_END);
+    long long tamArqIdx = arquivo_PosicaoAtual(arqIdx);
+    int qtdIdx = (int)((tamArqIdx - 1) / (sizeof(int) + sizeof(long long)));
+    RegistroIndice *Idxs = NULL;
+
+    if (qtdIdx > 0)
+    {
+        Idxs = (RegistroIndice *)malloc(qtdIdx * sizeof(RegistroIndice));
+        arquivo_Posiciona(arqIdx, 1);
+
+        // leitura do arquivo
+        for (int i = 0; i < qtdIdx; i++)
+        {
+            arquivo_LeInt(arqIdx, &Idxs[i].idPoPs);
+            arquivo_LeLongLong(arqIdx, &Idxs[i].byteOffset);
+        }
+    }
+
+    // marca arquivo como inconsistente durante a modificacao
+    cab.status = STATUS_INCONSISTENTE;
+    arquivo_inicio(arqBIN);
+    Escrever_Cabecalho(arqBIN, &cab);
+
+    arquivo_inicio(arqIdx);
+    arquivo_EscreveChar(arqIdx, STATUS_INCONSISTENTE);
+    fclose(arqIdx);
+
+    Registro reg_aux, reg;
+    char nome[TAM_MAX_STRING], pais[TAM_MAX_STRING], sigla[TAM_SIGLA + 1];
+    int id, tamNovo, tamTopo;
+    long long offsetTopo, prox, offsetInsert;
+    // realizando a leitura dos N dados
+    for (int i = 0; i < n; i++)
+    {
+
+        scanf("%d", &id);
+        ScanQuoteString(nome);
+        ScanQuoteString(pais);
+        ScanQuoteString(sigla);
+        
+
+        // nova estrturua de reg
+        Inicializa_registro(&reg_aux);
+        reg_aux.idPoPs = id;
+        strcpy(reg_aux.nomePoPs, nome);
+        strcpy(reg_aux.nomePais, pais);
+
+        if (sigla[0] != '\0')
+        {
+            reg_aux.siglaPais[0] = sigla[0];
+            reg_aux.siglaPais[1] = (sigla[1] != '\0') ? sigla[1] : VALOR_NULO_CHAR;
+        }
+
+        
+
+        tamNovo = calcula_tamanho_registro(&reg_aux);
+        offsetTopo = cab.topoLista;
+
+        if (offsetTopo != -1)
+        {
+            if (!Ler_registro_offset(arqBIN, offsetTopo, &reg))
+            {
+
+                printf("Falha no processamento do arquivo.");
+                break;
+            }
+            tamTopo = reg.tamanhoRegistro;
+            prox = reg.encadeamento;
+        }
+
+        // worst first
+        if (offsetTopo == -1 || tamTopo < tamNovo) // escreveremos no final do arquivo
+        {
+            // escreve Reg_aux no final do arquivo
+            offsetInsert = cab.proxByteOffset;
+            reg_aux.tamanhoRegistro = tamNovo;
+            reg_aux.encadeamento = LISTA_VAZIA;
+
+            arquivo_Posiciona(arqBIN, offsetInsert);
+            Escrever_registro(arqBIN, &reg_aux);
+
+            cab.proxByteOffset += tamNovo;
+            cab.nroPoPs++;
+        }
+        else
+        { // reaproveita o espaço
+            offsetInsert = offsetTopo;
+            reg_aux.tamanhoRegistro = tamTopo;
+            reg_aux.encadeamento = LISTA_VAZIA;
+
+            arquivo_Posiciona(arqBIN, offsetInsert);
+            Escrever_registro(arqBIN, &reg_aux);
+
+            cab.topoLista = prox;
+            cab.nroRegRem--;
+            cab.nroPoPs++;
+        }
+        if (id != VALOR_NULO_INT)
+        { // atualiza o arquivo de indices
+            insere_chaveIdx(&Idxs, &qtdIdx, id, offsetInsert);
+        }
+    }
+
+    // voltando a consistencia
+    cab.status = STATUS_CONSISTENTE;
+    arquivo_inicio(arqBIN);
+    Escrever_Cabecalho(arqBIN, &cab);
+    fclose(arqBIN);
+
+    arqIdx = fopen(nomeIdx, "wb");
+    if (arqIdx == NULL)
+    {
+        printf("Falha no processamento do arquivo.");
+        free(Idxs);
+        return;
+    }
+
+    arquivo_EscreveChar(arqIdx, STATUS_CONSISTENTE);
+    for (int i = 0; i < qtdIdx; i++)
+    {
+        arquivo_EscreveInt(arqIdx, Idxs[i].idPoPs);
+        arquivo_EscreveLongLong(arqIdx, Idxs[i].byteOffset);
+    }
+
+    fclose(arqIdx);
+    free(Idxs);
+
+    BinarioNaTela(nomeBin);
+    BinarioNaTela(nomeIdx);
+}
+
+void funcao_UPDATE(char *nomeBin, *nome)
 // FEITO: funcao_READVALUE (SELECT WHERE, 11) implementada com busca indexada e sequencial
 
 // apagado: funcao_SELECT_RRN, no TP2 nao existe RRN, a busca por byte offset vai ficar dentro do SELECT WHERE

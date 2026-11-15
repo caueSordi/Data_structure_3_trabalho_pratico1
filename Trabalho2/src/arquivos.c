@@ -44,6 +44,10 @@ void arquivo_Posiciona(FILE *arq, long long offset)
     fseek(arq, (long)offset, SEEK_SET);
 }
 
+void arquivo_PosicionaFinal(FILE *arq){
+    fseek(arq, 0, SEEK_END);
+}
+
 long long arquivo_PosicaoAtual(FILE *arq)
 {
     return (long long)ftell(arq);

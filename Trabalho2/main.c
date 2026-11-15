@@ -35,6 +35,11 @@ switch(func) {
         scanf("%s %s %d", nomeBin, nomeIndice, &n);
         funcao_DELETE(nomeBin, nomeIndice, n);
         break;
+
+    case 13:
+        scanf("%s %s %d", nomeBin, nomeIndice, &n);
+        funcao_INSERT(nomeBin, nomeIndice, n);
+        break;
 }
 
  

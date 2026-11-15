@@ -15,6 +15,9 @@ void remove_chaveIdx(RegistroIndice *Idx, int *qtdIdx, int idRem);
 void remocao_logica(FILE *ArqBin, RegistroIndice *Idx, int *qtdIdx, Cabecalho *cab, long long posReg, int tamReg, int id);
 void funcao_DELETE(char *nomeBin, char *nomeIndice, int n); //funcao 12: delete campos
 
+void insere_chaveIdx(RegistroIndice **Idx, int *qtdIdx, int id, long long offset);
+void funcao_INSERT(char *nomeBin, char *nomeIdx, int n);
+
 
 #endif
 

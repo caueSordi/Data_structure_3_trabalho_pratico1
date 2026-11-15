@@ -21,6 +21,9 @@ void      arquivo_PosCabecalho(FILE *arq);
 // vai para um byte offset @
 void arquivo_Posiciona(FILE *arq, long long offset);
 
+//posiciona no final do arquivo
+void arquivo_PosicionaFinal(FILE *arq);
+
 // posicao atual do arquivo @
 long long arquivo_PosicaoAtual(FILE *arq);
 
