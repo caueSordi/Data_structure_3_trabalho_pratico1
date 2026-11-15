@@ -539,6 +539,8 @@ void funcao_DELETE(char *nomeBin, char *nomeIndice, int n)
     BinarioNaTela(nomeIndice);
 }
 
+// Insere uma chave no vetor de indices mantendo a ordem crescente de idPoPs
+// (abre espaco com realloc e empurra para a direita as chaves maiores)
 void insere_chaveIdx(RegistroIndice **Idx, int *qtdIdx, int id, long long offset)
 {
     *Idx = realloc(*Idx, (*qtdIdx + 1) * sizeof(RegistroIndice));
@@ -556,6 +558,14 @@ void insere_chaveIdx(RegistroIndice **Idx, int *qtdIdx, int id, long long offset
     (*qtdIdx)++;
 }
 
+// Grava um registro novo no arquivo de dados usando a estrategia Worst Fit.
+// Foi separada de funcao_INSERT para ser reutilizada tambem pelo UPDATE.
+// A lista de removidos e ordenada do maior para o menor espaco, entao o
+// primeiro da lista (topo) e sempre o maior.
+//  - lista vazia ou topo menor que o novo: escreve no fim do arquivo
+//  - topo comporta o novo: reaproveita o espaco do topo e o tira da lista
+// Em ambos os casos atualiza o cabecalho e o indice.
+// Retorna 1 em sucesso e 0 em falha de leitura.
 int insere_registro_worst_fit(FILE *arqBIN, Cabecalho *cab, Registro *regNovo, RegistroIndice **Idxs, int *qtdIdx)
 {
     Registro regTopo;
@@ -565,6 +575,7 @@ int insere_registro_worst_fit(FILE *arqBIN, Cabecalho *cab, Registro *regNovo, R
     long long offsetTopo = cab->topoLista;
     long long offsetInsert;
 
+    // se existe removido, le o topo para saber seu tamanho e o proximo da lista
     if (offsetTopo != LISTA_VAZIA)
     {
         if (!Ler_registro_offset(arqBIN, offsetTopo, &regTopo))
@@ -576,12 +587,14 @@ int insere_registro_worst_fit(FILE *arqBIN, Cabecalho *cab, Registro *regNovo, R
         prox = regTopo.encadeamento;
     }
 
+    // o registro novo entra como ativo e fora da lista de removidos
     regNovo->removido = REGISTRO_NAO_REMOVIDO;
     regNovo->encadeamento = LISTA_VAZIA;
 
     // Worst Fit: insere no fim se a lista estiver vazia ou se o maior espaco nao comportar
     if (offsetTopo == LISTA_VAZIA || tamTopo < tamNovo)
     {
+        // caso 1: escreve no fim, com o tamanho exato do registro
         offsetInsert = cab->proxByteOffset;
         regNovo->tamanhoRegistro = tamNovo;
 
@@ -593,17 +606,20 @@ int insere_registro_worst_fit(FILE *arqBIN, Cabecalho *cab, Registro *regNovo, R
     }
     else
     {
+        // caso 2: reaproveita o espaco do topo (mantem o tamanho dele, a sobra vira '$')
         offsetInsert = offsetTopo;
         regNovo->tamanhoRegistro = tamTopo;
 
         arquivo_Posiciona(arqBIN, offsetInsert);
         Escrever_registro(arqBIN, regNovo);
 
+        // o topo da lista passa a ser o proximo removido
         cab->topoLista = prox;
         cab->nroRegRem--;
         cab->nroPoPs++;
     }
 
+    // registros com id nulo nao entram no indice
     if (regNovo->idPoPs != VALOR_NULO_INT)
     {
         insere_chaveIdx(Idxs, qtdIdx, regNovo->idPoPs, offsetInsert);
@@ -611,6 +627,11 @@ int insere_registro_worst_fit(FILE *arqBIN, Cabecalho *cab, Registro *regNovo, R
 
     return 1;
 }
+
+// Funcao 13: insere N registros lidos da entrada padrao
+// Fluxo: carrega o indice na memoria, marca binario e indice como inconsistentes,
+// insere cada registro com insere_registro_worst_fit e, no fim, regrava
+// cabecalho e indice como consistentes.
 void funcao_INSERT(char *nomeBin, char *nomeIdx, int n)
 {
     FILE *arqBIN = fopen(nomeBin, "rb+");
@@ -681,6 +702,7 @@ void funcao_INSERT(char *nomeBin, char *nomeIdx, int n)
         ScanQuoteString(sigla);
 
         // nova estrturua de reg
+        // monta o registro com os dados lidos (campo vazio vira nulo)
         Inicializa_registro(&reg_aux);
         reg_aux.idPoPs = id;
         strcpy(reg_aux.nomePoPs, nome);
@@ -695,6 +717,7 @@ void funcao_INSERT(char *nomeBin, char *nomeIdx, int n)
         tamNovo = calcula_tamanho_registro(&reg_aux);
         offsetTopo = cab.topoLista;
 
+        // a escolha do espaco (fim do arquivo ou removido) e feita pela funcao auxiliar
         if (!insere_registro_worst_fit(arqBIN, &cab, &reg_aux, &Idxs, &qtdIdx))
             break;
     }
@@ -705,6 +728,7 @@ void funcao_INSERT(char *nomeBin, char *nomeIdx, int n)
     Escrever_Cabecalho(arqBIN, &cab);
     fclose(arqBIN);
 
+    // regrava o indice inteiro, ja atualizado e ordenado
     arqIdx = fopen(nomeIdx, "wb");
     if (arqIdx == NULL)
     {
@@ -727,6 +751,9 @@ void funcao_INSERT(char *nomeBin, char *nomeIdx, int n)
     BinarioNaTela(nomeIdx);
 }
 
+// Aplica em *reg os campos de atualizacao recebidos (pares nomeCampo/valor).
+// So os campos citados em "dados" sao alterados; os demais ficam como estavam.
+// Valor vazio em siglaPais vira nulo ("$$").
 void atualiza_registro(Criterio *dados, int nDados, Registro *reg)
 {
 
@@ -760,6 +787,11 @@ void atualiza_registro(Criterio *dados, int nDados, Registro *reg)
     }
 }
 
+// Funcao 14: atualiza registros. Para cada uma das N operacoes le os criterios
+// de busca e os campos a atualizar, e para cada registro encontrado:
+//  - se o registro atualizado cabe no espaco antigo: sobrescreve no mesmo lugar
+//    (o indice so muda se o idPoPs mudou)
+//  - se nao cabe: remove logicamente o antigo e insere o novo com Worst Fit
 void funcao_UPDATE(char *nomeBin, char *nomeIdx, int n)
 {
     FILE *arqBIN = fopen(nomeBin, "rb+");
@@ -821,6 +853,7 @@ void funcao_UPDATE(char *nomeBin, char *nomeIdx, int n)
         int nBuscas, nUpdates;
 
         // leituras dos N/p parametros de busca e atualização
+        // Buscas = criterios para achar os registros; Updates = campos a alterar
         scanf("%d", &nBuscas);
         Criterio Buscas[MAX_CRITERIOS], Updates[MAX_CRITERIOS];
         for (int j = 0; j < nBuscas; j++)
@@ -837,6 +870,8 @@ void funcao_UPDATE(char *nomeBin, char *nomeIdx, int n)
         }
 
         long long posicao = TAM_CABECALHO;
+        // fixa o fim da varredura antes de comecar: registros inseridos no fim
+        // durante este laco (caso "nao cabe") nao sao reprocessados
         long long limBusca = cab.proxByteOffset;
 
         // verificando se ha regs que possuem os parametros de busca
@@ -848,6 +883,7 @@ void funcao_UPDATE(char *nomeBin, char *nomeIdx, int n)
             if (!Ler_registro(arqBIN, &regAntigo))
                 break;
 
+            // o proximo registro comeca logo apos o tamanho total deste
             posicao = posReg + regAntigo.tamanhoRegistro;
 
             if (regAntigo.removido == REGISTRO_REMOVIDO)
@@ -855,6 +891,7 @@ void funcao_UPDATE(char *nomeBin, char *nomeIdx, int n)
             if (!Registro_satisfaz(&regAntigo, Buscas, nBuscas))
                 continue;
 
+            // copia o registro e aplica as alteracoes na copia
             Registro regNovo = regAntigo;
             atualiza_registro(Updates, nUpdates, &regNovo);
 
@@ -863,6 +900,7 @@ void funcao_UPDATE(char *nomeBin, char *nomeIdx, int n)
 
             if (tamNovo <= tamAntigo)
             {
+                // caso 1: cabe no mesmo espaco, sobrescreve no lugar
                 // atualiza os paranmentros
                 regNovo.removido = REGISTRO_NAO_REMOVIDO;
                 regNovo.tamanhoRegistro = tamAntigo;
@@ -872,6 +910,7 @@ void funcao_UPDATE(char *nomeBin, char *nomeIdx, int n)
                 Escrever_registro(arqBIN, &regNovo);
 
                 // verificação da chave nova
+                // se o id mudou: tira a chave antiga do indice e poe a nova (mesmo offset)
                 if (regAntigo.idPoPs != regNovo.idPoPs)
                 {
                     if (regAntigo.idPoPs != VALOR_NULO_INT && Idxs != NULL)
@@ -882,10 +921,13 @@ void funcao_UPDATE(char *nomeBin, char *nomeIdx, int n)
             }
             else
             {
+                // caso 2: o novo registro nao cabe, entao remove o antigo e reinsere
                 // o novo Reg é maior do que o tam disponivel
+                // (remocao_logica ja tira a chave antiga do indice)
                 remocao_logica(arqBIN, Idxs, &qtdIdx, &cab, posReg, tamAntigo, regAntigo.idPoPs);
 
                 // insercao do novo reg
+                // (insere_registro_worst_fit poe a chave nova no indice)
                 if (!insere_registro_worst_fit(arqBIN, &cab, &regNovo, &Idxs, &qtdIdx))
                     break;
             }
@@ -898,6 +940,7 @@ void funcao_UPDATE(char *nomeBin, char *nomeIdx, int n)
     Escrever_Cabecalho(arqBIN, &cab);
     fclose(arqBIN);
 
+    // regrava o indice inteiro, ja atualizado e ordenado
     arqIdx = fopen(nomeIdx, "wb");
     if (arqIdx == NULL)
     {
